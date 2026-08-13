@@ -1,29 +1,26 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { personas } from '../data/personas';
 
 export default function DetallePersona() {
     const { id } = useParams();
-    const persona = personas.find((p) => p.id === parseInt(id));
 
-    if (!persona) {
-        return (
-            <div>
-                <h1>Persona no encontrada</h1>
-                <Link to="/">Volver al listado</Link>
-            </div>
-        );
-    }
+    // Aquí deberías tener tu lógica para obtener los datos de la persona usando el id
+    // Ejemplo ficticio de objeto persona:
+    const personas = [
+    { id: 1, nombre: "Bob", apellidos: "Johnson", edad: 35, profesion: "cocinero" },
+    { id: 2, nombre: "Donald", apellidos: "Jordan", edad: 27, profesion: "politico" },
+    { id: 3, nombre: "Javier", apellidos: "Troncos", edad: 27, profesion: "leñador" }
+];
 
     return (
-        <div className="card">
-            <h1>Información Personal</h1>
-            <p><strong>Nombre:</strong> {persona.nombre}</p>
-            <p><strong>Apellidos:</strong> {persona.apellidos}</p>
-            <p><strong>Edad:</strong> {persona.edad}</p>
-            <p><strong>Dirección:</strong> {persona.direccion}</p>
-            <br />
-            <Link to="/">Volver al listado</Link>
+        <div>
+            <h2>Perfil de Usuario</h2>
+            {/* El nombre ahora es un enlace que lleva a la ruta de la foto */}
+            <p>Nombre: <Link to={`/persona/${id}/foto`}>{personas.find(p => p.id === parseInt(id))?.nombre}</Link></p>
+            <p>Apellidos: {personas.find(p => p.id === parseInt(id))?.apellidos}</p>
+            <p>Edad: {personas.find(p => p.id === parseInt(id))?.edad}</p>
+            <p>Profesión: {personas.find(p => p.id === parseInt(id))?.profesion}</p>
+            {/* Resto de tus detalles... */}
         </div>
     );
 }

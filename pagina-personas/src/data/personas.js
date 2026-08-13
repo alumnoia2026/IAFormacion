@@ -1,5 +1,5 @@
 export const personas = [
-    { id: 1, nombre: "Antonio", apellidos: "Hernandez Corral", edad: 35, caracteristica: "inteligente" },
-    { id: 2, nombre: "Fausti", apellidos: "Martinez", edad: 27, caracteristica: "potente" },
-    { id: 3, nombre: "Kyliam", apellidos: "Mbappé", edad: 27, caracteristica: "veloz" }
+    { id: 1, nombre: "Bob", apellidos: "Johnson", edad: 35, profesion: "cocinero" },
+    { id: 2, nombre: "Donald", apellidos: "Jordan", edad: 27, profesion: "politico" },
+    { id: 3, nombre: "Javier", apellidos: "Troncos", edad: 27, profesion: "leñador" }
 ];
