@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-const API_URL = "http://localhost:3000/api";
+const API_URL = "https://iaformacion.onrender.com";
 
 function AtencionCliente() {
   const [atenciones, setAtenciones] = useState([]);
