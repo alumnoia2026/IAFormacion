@@ -1,41 +1,111 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Servidor: 127.0.0.1
--- Tiempo de generación: 19-08-2026 a las 12:21:13
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- Script corregido para MariaDB/MySQL y phpMyAdmin
+-- Se han eliminado procedimientos almacenados (si los hubiera).
+-- Las claves e índices se definen directamente en CREATE TABLE.
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
+SET NAMES utf8mb4;
 
+CREATE DATABASE IF NOT EXISTS `ejercicio4`
+  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE `ejercicio4`;
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `atencion_cliente`;
+DROP TABLE IF EXISTS `datos_personales`;
+DROP TABLE IF EXISTS `clientes`;
+SET FOREIGN_KEY_CHECKS = 1;
 
---
--- Base de datos: `ejercicio4`
---
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `atencion_cliente`
---
-
-CREATE TABLE `atencion_cliente` (
-  `id` int(11) NOT NULL,
-  `Consulta` text NOT NULL,
-  `Respuesta` text DEFAULT NULL
+CREATE TABLE `clientes` (
+  `id_cliente` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(50) NOT NULL,
+  `apellido` varchar(50) NOT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `telefono` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`id_cliente`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `atencion_cliente`
---
+INSERT INTO `clientes` (`id_cliente`, `nombre`, `apellido`, `email`, `telefono`) VALUES
+(1, 'Laura', 'García', 'laura.garcia@email.com', '600100001'),
+(2, 'Manuel', 'Rodríguez', 'manuel.rodriguez@email.com', '600100002'),
+(3, 'Jacinto', 'Pérez', 'jacinto.perez@email.com', '600100003'),
+(4, 'Eulalia', 'Martínez', 'eulalia.martinez@email.com', '600100004'),
+(5, 'Carlos', 'López', 'carlos.lopez@email.com', '600100005'),
+(6, 'Ana', 'Sánchez', 'ana.sanchez@email.com', '600100006'),
+(7, 'David', 'Fernández', 'david.fernandez@email.com', '600100007'),
+(8, 'María', 'Gómez', 'maria.gomez@email.com', '600100008'),
+(9, 'Javier', 'Díaz', 'javier.diaz@email.com', '600100009'),
+(10, 'Lucía', 'Moreno', 'lucia.moreno@email.com', '600100010'),
+(11, 'Miguel', 'Álvarez', 'miguel.alvarez@email.com', '600100011'),
+(12, 'Carmen', 'Romero', 'carmen.romero@email.com', '600100012'),
+(13, 'Antonio', 'Alonso', 'antonio.alonso@email.com', '600100013'),
+(14, 'Sofía', 'Navarro', 'sofia.navarro@email.com', '600100014'),
+(15, 'Daniel', 'Torres', 'daniel.torres@email.com', '600100015'),
+(16, 'Elena', 'Domínguez', 'elena.dominguez@email.com', '600100016'),
+(17, 'Pablo', 'Vázquez', 'pablo.vazquez@email.com', '600100017'),
+(18, 'Sara', 'Ramos', 'sara.ramos@email.com', '600100018'),
+(19, 'Álvaro', 'Ramírez', 'alvaro.ramirez@email.com', '600100019'),
+(20, 'Claudia', 'Vázquez', 'claudia.vazquez@email.com', '600100020'),
+(21, 'Sergio', 'Cruz', 'sergio.cruz@email.com', '600100021'),
+(22, 'Marta', 'Morales', 'marta.morales@email.com', '600100022'),
+(23, 'Fernando', 'Ortiz', 'fernando.ortiz@email.com', '600100023'),
+(24, 'Paula', 'Rubio', 'paula.rubio@email.com', '600100024'),
+(25, 'Adrián', 'Molina', 'adrian.molina@email.com', '600100025'),
+(26, 'Isabel', 'Suárez', 'isabel.suarez@email.com', '600100026'),
+(27, 'Rubén', 'Blanco', 'ruben.blanco@email.com', '600100027'),
+(28, 'Patricia', 'Iglesias', 'patricia.iglesias@email.com', '600100028'),
+(29, 'Óscar', 'Medina', 'oscar.medina@email.com', '600100029'),
+(30, 'Natalia', 'Marín', 'natalia.marin@email.com', '600100030'),
+(31, 'Diego', 'Sanz', 'diego.sanz@email.com', '600100031'),
+(32, 'Cristina', 'Gutiérrez', 'cristina.gutierrez@email.com', '600100032'),
+(33, 'Mario', 'Ortega', 'mario.ortega@email.com', '600100033'),
+(34, 'Beatriz', 'Delgado', 'beatriz.delgado@email.com', '600100034'),
+(35, 'Raúl', 'Castro', 'raul.castro@email.com', '600100035'),
+(36, 'Teresa', 'Ortiz', 'teresa.ortiz@email.com', '600100036'),
+(37, 'Iván', 'Rubio', 'ivan.rubio@email.com', '600100037'),
+(38, 'Silvia', 'Méndez', 'silvia.mendez@email.com', '600100038'),
+(39, 'Héctor', 'Santiago', 'hector.santiago@email.com', '600100039'),
+(40, 'Rocío', 'Durán', 'rocio.duran@email.com', '600100040'),
+(41, 'Víctor', 'Pastor', 'victor.pastor@email.com', '600100041'),
+(42, 'Andrea', 'Cabrera', 'andrea.cabrera@email.com', '600100042'),
+(43, 'Gonzalo', 'Reyes', 'gonzalo.reyes@email.com', '600100043'),
+(44, 'Alicia', 'Nieto', 'alicia.nieto@email.com', '600100044'),
+(45, 'Enrique', 'Vega', 'enrique.vega@email.com', '600100045'),
+(46, 'Lorena', 'Pascual', 'lorena.pascual@email.com', '600100046'),
+(47, 'Jesús', 'Herrera', 'jesus.herrera@email.com', '600100047'),
+(48, 'Verónica', 'Arias', 'veronica.arias@email.com', '600100048'),
+(49, 'Francisco', 'Moya', 'francisco.moya@email.com', '600100049'),
+(50, 'Nuria', 'Calvo', 'nuria.calvo@email.com', '600100050');
+
+CREATE TABLE `datos_personales` (
+  `id_persona` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(100) NOT NULL,
+  `apellidos` varchar(100) NOT NULL,
+  `edad` int(2) NOT NULL,
+  PRIMARY KEY (`id_persona`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `datos_personales` (`nombre`, `apellidos`, `edad`) VALUES
+('Manuel', 'Mancebo', 62),
+('Juan', 'Martinez', 55),
+('jose', 'Vidal', 64),
+('Antonio', 'Mancebo', 60),
+('Procopio', 'Sanchez', 57),
+('Procopio', 'Sanchez', 57);
+
+CREATE TABLE `atencion_cliente` (
+  `id_atencion` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `id` int(11) NOT NULL,
+  `Consulta` text NOT NULL,
+  `Respuesta` text DEFAULT NULL,
+  KEY `idx_atencion_cliente_id` (`id`),
+  CONSTRAINT `fk_atencion_cliente_cliente`
+    FOREIGN KEY (`id`) REFERENCES `clientes` (`id_cliente`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `atencion_cliente` (`id`, `Consulta`, `Respuesta`) VALUES
 (1, '¿Cuál es el horario de atención?', 'Nuestro horario es de lunes a viernes de 9:00 a 18:00.'),
@@ -139,137 +209,4 @@ INSERT INTO `atencion_cliente` (`id`, `Consulta`, `Respuesta`) VALUES
 (50, '¿Cómo puedo contactar con atención al cliente?', 'Puede contactar con nosotros mediante este servicio de atención.'),
 (50, '¿Puedo realizar varias consultas?', 'Sí, puede realizar todas las consultas que necesite.');
 
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `clientes`
---
-
-CREATE TABLE `clientes` (
-  `id_cliente` int(11) NOT NULL,
-  `nombre` varchar(50) NOT NULL,
-  `apellido` varchar(50) NOT NULL,
-  `email` varchar(100) DEFAULT NULL,
-  `telefono` varchar(20) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `clientes`
---
-
-INSERT INTO `clientes` (`id_cliente`, `nombre`, `apellido`, `email`, `telefono`) VALUES
-(1, 'Laura', 'García', 'laura.garcia@email.com', '600100001'),
-(2, 'Manuel', 'Rodríguez', 'manuel.rodriguez@email.com', '600100002'),
-(3, 'Jacinto', 'Pérez', 'jacinto.perez@email.com', '600100003'),
-(4, 'Eulalia', 'Martínez', 'eulalia.martinez@email.com', '600100004'),
-(5, 'Carlos', 'López', 'carlos.lopez@email.com', '600100005'),
-(6, 'Ana', 'Sánchez', 'ana.sanchez@email.com', '600100006'),
-(7, 'David', 'Fernández', 'david.fernandez@email.com', '600100007'),
-(8, 'María', 'Gómez', 'maria.gomez@email.com', '600100008'),
-(9, 'Javier', 'Díaz', 'javier.diaz@email.com', '600100009'),
-(10, 'Lucía', 'Moreno', 'lucia.moreno@email.com', '600100010'),
-(11, 'Miguel', 'Álvarez', 'miguel.alvarez@email.com', '600100011'),
-(12, 'Carmen', 'Romero', 'carmen.romero@email.com', '600100012'),
-(13, 'Antonio', 'Alonso', 'antonio.alonso@email.com', '600100013'),
-(14, 'Sofía', 'Navarro', 'sofia.navarro@email.com', '600100014'),
-(15, 'Daniel', 'Torres', 'daniel.torres@email.com', '600100015'),
-(16, 'Elena', 'Domínguez', 'elena.dominguez@email.com', '600100016'),
-(17, 'Pablo', 'Vázquez', 'pablo.vazquez@email.com', '600100017'),
-(18, 'Sara', 'Ramos', 'sara.ramos@email.com', '600100018'),
-(19, 'Álvaro', 'Ramírez', 'alvaro.ramirez@email.com', '600100019'),
-(20, 'Claudia', 'Vázquez', 'claudia.vazquez@email.com', '600100020'),
-(21, 'Sergio', 'Cruz', 'sergio.cruz@email.com', '600100021'),
-(22, 'Marta', 'Morales', 'marta.morales@email.com', '600100022'),
-(23, 'Fernando', 'Ortiz', 'fernando.ortiz@email.com', '600100023'),
-(24, 'Paula', 'Rubio', 'paula.rubio@email.com', '600100024'),
-(25, 'Adrián', 'Molina', 'adrian.molina@email.com', '600100025'),
-(26, 'Isabel', 'Suárez', 'isabel.suarez@email.com', '600100026'),
-(27, 'Rubén', 'Blanco', 'ruben.blanco@email.com', '600100027'),
-(28, 'Patricia', 'Iglesias', 'patricia.iglesias@email.com', '600100028'),
-(29, 'Óscar', 'Medina', 'oscar.medina@email.com', '600100029'),
-(30, 'Natalia', 'Marín', 'natalia.marin@email.com', '600100030'),
-(31, 'Diego', 'Sanz', 'diego.sanz@email.com', '600100031'),
-(32, 'Cristina', 'Gutiérrez', 'cristina.gutierrez@email.com', '600100032'),
-(33, 'Mario', 'Ortega', 'mario.ortega@email.com', '600100033'),
-(34, 'Beatriz', 'Delgado', 'beatriz.delgado@email.com', '600100034'),
-(35, 'Raúl', 'Castro', 'raul.castro@email.com', '600100035'),
-(36, 'Teresa', 'Ortiz', 'teresa.ortiz@email.com', '600100036'),
-(37, 'Iván', 'Rubio', 'ivan.rubio@email.com', '600100037'),
-(38, 'Silvia', 'Méndez', 'silvia.mendez@email.com', '600100038'),
-(39, 'Héctor', 'Santiago', 'hector.santiago@email.com', '600100039'),
-(40, 'Rocío', 'Durán', 'rocio.duran@email.com', '600100040'),
-(41, 'Víctor', 'Pastor', 'victor.pastor@email.com', '600100041'),
-(42, 'Andrea', 'Cabrera', 'andrea.cabrera@email.com', '600100042'),
-(43, 'Gonzalo', 'Reyes', 'gonzalo.reyes@email.com', '600100043'),
-(44, 'Alicia', 'Nieto', 'alicia.nieto@email.com', '600100044'),
-(45, 'Enrique', 'Vega', 'enrique.vega@email.com', '600100045'),
-(46, 'Lorena', 'Pascual', 'lorena.pascual@email.com', '600100046'),
-(47, 'Jesús', 'Herrera', 'jesus.herrera@email.com', '600100047'),
-(48, 'Verónica', 'Arias', 'veronica.arias@email.com', '600100048'),
-(49, 'Francisco', 'Moya', 'francisco.moya@email.com', '600100049'),
-(50, 'Nuria', 'Calvo', 'nuria.calvo@email.com', '600100050');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `datos_personales`
---
-
-CREATE TABLE `datos_personales` (
-  `nombre` varchar(100) NOT NULL,
-  `apellidos` varchar(100) NOT NULL,
-  `edad` int(2) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `datos_personales`
---
-
-INSERT INTO `datos_personales` (`nombre`, `apellidos`, `edad`) VALUES
-('Manuel', 'Mancebo', 62),
-('Juan', 'Martinez', 55),
-('jose', 'Vidal', 64),
-('Antonio', 'Mancebo', 60),
-('Procopio', 'Sanchez', 57),
-('Procopio', 'Sanchez', 57);
-
---
--- Índices para tablas volcadas
---
-
---
--- Indices de la tabla `atencion_cliente`
---
-ALTER TABLE `atencion_cliente`
-  ADD KEY `id` (`id`);
-
---
--- Indices de la tabla `clientes`
---
-ALTER TABLE `clientes`
-  ADD PRIMARY KEY (`id_cliente`);
-
---
--- AUTO_INCREMENT de las tablas volcadas
---
-
---
--- AUTO_INCREMENT de la tabla `clientes`
---
-ALTER TABLE `clientes`
-  MODIFY `id_cliente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
-
---
--- Restricciones para tablas volcadas
---
-
---
--- Filtros para la tabla `atencion_cliente`
---
-ALTER TABLE `atencion_cliente`
-  ADD CONSTRAINT `atencion_cliente_ibfk_1` FOREIGN KEY (`id`) REFERENCES `clientes` (`id_cliente`);
 COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
