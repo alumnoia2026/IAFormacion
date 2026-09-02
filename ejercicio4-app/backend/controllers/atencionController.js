@@ -3,11 +3,12 @@ import pool from "../db.js";
 export const getAtenciones = async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT ac.id, ac.Consulta AS consulta, ac.Respuesta AS respuesta,
-             c.nombre, c.apellido
+      SELECT ac.id_atencion, ac.id AS id_cliente,
+             ac.Consulta AS consulta, ac.Respuesta AS respuesta,
+             c.nombre, c.apellido, c.email
       FROM atencion_cliente ac
       INNER JOIN clientes c ON ac.id = c.id_cliente
-      ORDER BY ac.id
+      ORDER BY ac.id_atencion
     `);
     res.json(rows);
   } catch (error) {
@@ -19,14 +20,19 @@ export const getAtenciones = async (req, res) => {
 export const getAtencionById = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT ac.id, ac.Consulta AS consulta, ac.Respuesta AS respuesta,
-              c.nombre, c.apellido
+      `SELECT ac.id_atencion, ac.id AS id_cliente,
+              ac.Consulta AS consulta, ac.Respuesta AS respuesta,
+              c.nombre, c.apellido, c.email
        FROM atencion_cliente ac
        INNER JOIN clientes c ON ac.id = c.id_cliente
-       WHERE ac.id = ?`,
+       WHERE ac.id_atencion = ?`,
       [req.params.id]
     );
-    if (!rows.length) return res.status(404).json({ error: "Consulta no encontrada" });
+
+    if (!rows.length) {
+      return res.status(404).json({ error: "Consulta no encontrada" });
+    }
+
     res.json(rows[0]);
   } catch (error) {
     console.error(error);
@@ -45,7 +51,9 @@ export const createAtencion = async (req, res) => {
     }
 
     const [cliente] = await pool.query(
-      "SELECT id_cliente, nombre, apellido, email FROM clientes WHERE id_cliente = ?",
+      `SELECT id_cliente, nombre, apellido, email
+       FROM clientes
+       WHERE id_cliente = ?`,
       [id]
     );
 
@@ -53,8 +61,6 @@ export const createAtencion = async (req, res) => {
       return res.status(404).json({ error: "El cliente no existe" });
     }
 
-    // Guardar la consulta en Aiven.
-    // Si no hay respuesta, Respuesta queda en NULL para que Zapier la procese.
     const [result] = await pool.query(
       `INSERT INTO atencion_cliente (id, Consulta, Respuesta)
        VALUES (?, ?, ?)`,
@@ -63,7 +69,7 @@ export const createAtencion = async (req, res) => {
 
     const idAtencion = result.insertId;
 
-    // Avisar a Zapier únicamente si todavía no existe una respuesta.
+    // Si la consulta no tiene respuesta, avisamos a Zapier.
     if (!respuesta) {
       const webhookUrl = process.env.ZAPIER_WEBHOOK_URL;
 
@@ -96,7 +102,6 @@ export const createAtencion = async (req, res) => {
             );
           }
         } catch (zapierError) {
-          // La consulta ya está guardada en Aiven aunque Zapier falle.
           console.error("Error al enviar la consulta a Zapier:", zapierError);
         }
       } else {
@@ -109,7 +114,7 @@ export const createAtencion = async (req, res) => {
     res.status(201).json({
       message: "Consulta creada correctamente",
       id_atencion: idAtencion,
-      id,
+      id_cliente: id,
       consulta,
       respuesta: respuesta || null
     });
@@ -118,14 +123,59 @@ export const createAtencion = async (req, res) => {
     res.status(500).json({ error: "Error al crear la consulta" });
   }
 };
+
+// Esta ruta la llamará Zapier después de recibir la respuesta de Gemini.
+export const guardarRespuestaIA = async (req, res) => {
+  try {
+    const { id_atencion, respuesta } = req.body;
+
+    if (!id_atencion || !respuesta) {
+      return res.status(400).json({
+        error: "id_atencion y respuesta son obligatorios"
+      });
+    }
+
+    const [result] = await pool.query(
+      `UPDATE atencion_cliente
+       SET Respuesta = ?
+       WHERE id_atencion = ?`,
+      [respuesta, id_atencion]
+    );
+
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        error: "Consulta no encontrada"
+      });
+    }
+
+    res.json({
+      message: "Respuesta de IA guardada correctamente",
+      id_atencion,
+      respuesta
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Error al guardar la respuesta de IA"
+    });
+  }
+};
+
 export const updateAtencion = async (req, res) => {
   try {
     const { consulta, respuesta } = req.body;
+
     const [result] = await pool.query(
-      `UPDATE atencion_cliente SET Consulta=?, Respuesta=? WHERE id=?`,
+      `UPDATE atencion_cliente
+       SET Consulta = ?, Respuesta = ?
+       WHERE id_atencion = ?`,
       [consulta, respuesta || null, req.params.id]
     );
-    if (!result.affectedRows) return res.status(404).json({ error: "Consulta no encontrada" });
+
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: "Consulta no encontrada" });
+    }
+
     res.json({ message: "Consulta actualizada correctamente" });
   } catch (error) {
     console.error(error);
@@ -136,9 +186,14 @@ export const updateAtencion = async (req, res) => {
 export const deleteAtencion = async (req, res) => {
   try {
     const [result] = await pool.query(
-      "DELETE FROM atencion_cliente WHERE id = ?", [req.params.id]
+      "DELETE FROM atencion_cliente WHERE id_atencion = ?",
+      [req.params.id]
     );
-    if (!result.affectedRows) return res.status(404).json({ error: "Consulta no encontrada" });
+
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: "Consulta no encontrada" });
+    }
+
     res.json({ message: "Consulta eliminada correctamente" });
   } catch (error) {
     console.error(error);
