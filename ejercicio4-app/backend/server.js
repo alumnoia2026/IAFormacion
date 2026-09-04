@@ -9,8 +9,13 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const allowedOrigins = ["https://iaformacion-1.onrender.com"];
 
-app.use(cors());
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "X-API-Key"]
+}));
 app.use(express.json());
 
 app.get("/", (req, res) => {
