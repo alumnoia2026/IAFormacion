@@ -17,8 +17,17 @@ function AtencionCliente() {
     }
   };
 
-  useEffect(() => { cargarAtenciones(); }, []);
+  useEffect(() => {
+  cargarAtenciones
+  ();
 
+  const intervalo = setInterval(() => {
+    cargarAtenciones();
+  }, 3000);
+
+  return () => clearInterval(intervalo);
+
+}, []);
   const handleChange = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value });
   };
