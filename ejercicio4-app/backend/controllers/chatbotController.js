@@ -78,9 +78,19 @@ export const responderChatbot = async (req, res) => {
       clearTimeout(timeout);
     }
 
-    const data = await aiResponse.json().catch(() => ({}));
+    const responseBody = await aiResponse.text();
+    let data = {};
+    try {
+      data = responseBody ? JSON.parse(responseBody) : {};
+    } catch {
+      data = {};
+    }
     if (!aiResponse.ok) {
-      console.error("Error del proveedor de IA:", aiResponse.status, data.error?.message || "sin detalle");
+      const detail = data.error?.message || data.error?.status || data.message || responseBody || "respuesta vacía";
+      const safeDetail = String(detail)
+        .replaceAll(apiKey, "[GEMINI_API_KEY ocultada]")
+        .slice(0, 1200);
+      console.error("Error del proveedor de IA:", aiResponse.status, data.error?.code || "", safeDetail);
       return res.status(502).json({ error: "El asistente no pudo responder ahora. Inténtalo de nuevo más tarde." });
     }
 
