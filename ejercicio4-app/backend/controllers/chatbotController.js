@@ -88,7 +88,7 @@ export const responderChatbot = async (req, res) => {
     if (!aiResponse.ok) {
       const detail = data.error?.message || data.error?.status || data.message || responseBody || "respuesta vacía";
       const safeDetail = String(detail)
-        .replaceAll(apiKey, "[GEMINI_API_KEY ocultada]")
+        .replaceAll(apiKey, process.env.GEMINI_API_KEY)
         .slice(0, 1200);
       console.error("Error del proveedor de IA:", aiResponse.status, data.error?.code || "", safeDetail);
       return res.status(502).json({ error: "El asistente no pudo responder ahora. Inténtalo de nuevo más tarde." });
