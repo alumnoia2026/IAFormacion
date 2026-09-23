@@ -57,7 +57,7 @@ export const responderChatbot = async (req, res) => {
     const timeout = setTimeout(() => controller.abort(), 25000);
     let aiResponse;
     try {
-      aiResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+      aiResponse = await fetch("https://generativelanguage.googleapis.com/v1/interactions", {
         method: "POST",
         headers: {
           "x-goog-api-key": apiKey,
