@@ -193,8 +193,8 @@ export const responderChatbot = async (req, res) => {
       const consultaGuardada = `[CHATBOT] ${pregunta}`;
       await pool.execute(
         `INSERT INTO atencion_cliente
-           (id, Consulta, Respuesta, estado_respuesta, fecha_respuesta)
-         VALUES (?, ?, ?, 'respondida', CURRENT_TIMESTAMP)`,
+           (id, Consulta, Respuesta)
+         VALUES (?, ?, ?)`,
         [cliente.id_cliente, consultaGuardada, reply]
       );
     } catch (databaseError) {
