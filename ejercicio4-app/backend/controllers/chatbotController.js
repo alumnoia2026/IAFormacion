@@ -70,7 +70,9 @@ export const responderChatbot = async (req, res) => {
           input: messages.map(({ role, content }) => role === "user"
             ? { type: "user_input", content }
             : { type: "model_output", content: [{ type: "text", text: content }] }),
-          generation_config: { max_output_tokens: 350, temperature: 0.2 },
+          // Las respuestas breves de soporte no necesitan razonamiento profundo.
+          // max_output_tokens también cuenta los tokens internos de razonamiento.
+          generation_config: { max_output_tokens: 800, thinking_level: "low", temperature: 0.2 },
           store: false
         })
       });
@@ -88,10 +90,16 @@ export const responderChatbot = async (req, res) => {
     if (!aiResponse.ok) {
       const detail = data.error?.message || data.error?.status || data.message || responseBody || "respuesta vacía";
       const safeDetail = String(detail)
-        .replaceAll(apiKey, process.env.GEMINI_API_KEY)
+        .replaceAll(apiKey, "[GEMINI_API_KEY oculta]")
         .slice(0, 1200);
       console.error("Error del proveedor de IA:", aiResponse.status, data.error?.code || "", safeDetail);
       return res.status(502).json({ error: "El asistente no pudo responder ahora. Inténtalo de nuevo más tarde." });
+    }
+
+    // No mostrar como respuesta válida una salida que Gemini haya cortado.
+    if (data.status && data.status !== "completed") {
+      console.error("Interacción de Gemini incompleta:", data.status);
+      return res.status(502).json({ error: "La respuesta quedó incompleta. Inténtalo de nuevo." });
     }
 
     const reply = (data.steps || [])
