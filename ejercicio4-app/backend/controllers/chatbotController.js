@@ -4,6 +4,30 @@ const ventanasPorIp = new Map();
 const LIMITE_MENSAJES = 20;
 const VENTANA_MS = 15 * 60 * 1000;
 
+function normalizarTexto(valor) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+function laFraseIncluyeNombre(frase, nombreCompleto) {
+  const fraseNormalizada = ` ${normalizarTexto(frase)} `;
+  const nombreNormalizado = ` ${normalizarTexto(nombreCompleto)} `;
+  return fraseNormalizada.includes(nombreNormalizado);
+}
+
+function contieneConsultaAdemasDelNombre(frase, nombreCompleto) {
+  const nombreNormalizado = normalizarTexto(nombreCompleto);
+  const resto = normalizarTexto(frase)
+    .replace(nombreNormalizado, " ")
+    .replace(/\b(me llamo|soy|mi nombre es|hola|buenas|buenos dias|buenas tardes|buenas noches|y|e)\b/g, " ")
+    .trim();
+  return Boolean(resto);
+}
+
 function excedeLimite(ip) {
   const ahora = Date.now();
   const ventana = ventanasPorIp.get(ip);
@@ -50,23 +74,25 @@ export const responderChatbot = async (req, res) => {
     if (!customerName) {
       return res.json({
         needsName: true,
-        reply: "Para atenderte y dirigirme a ti por tu nombre y apellido, indícame ambos tal como aparecen en tu registro de cliente."
+        reply: "Para dirigirme a ti por tu nombre y apellido, ¿cómo te llamas?"
       });
     }
 
-    // Se comprueba el nombre completo en clientes. No se confía en un id enviado por el navegador.
-    const [matchingClients] = await pool.execute(`
+    // Se busca el nombre completo incluso si viene dentro de una frase hablada,
+    // y se ignoran mayúsculas, signos y diferencias de acentos.
+    const [registeredClients] = await pool.query(`
       SELECT id_cliente, nombre, apellido
       FROM clientes
-      WHERE LOWER(TRIM(CONCAT(nombre, ' ', apellido))) = LOWER(?)
-      LIMIT 2
-    `, [customerName]);
+    `);
+    const matchingClients = registeredClients.filter((registeredClient) =>
+      laFraseIncluyeNombre(customerName, `${registeredClient.nombre} ${registeredClient.apellido}`)
+    );
 
     if (matchingClients.length === 0) {
       return res.json({
         needsName: true,
         registered: false,
-        reply: "No encuentro ese nombre y apellido en la lista de clientes. Por favor, regístrate en la página y vuelve al chat con el nombre tal como aparece en tu registro."
+        reply: "No he podido localizarte en la lista de clientes. Si todavía no estás registrado, por favor regístrate en la página y vuelve al chat."
       });
     }
 
@@ -95,6 +121,11 @@ export const responderChatbot = async (req, res) => {
     const conversation = messages.filter((message) =>
       message.kind !== "identity" && message.kind !== "greeting"
     );
+    // Si el cliente dijo su nombre junto con una consulta, Gemini recibe el texto
+    // original completo del usuario, sin reformular la transcripción.
+    if (contieneConsultaAdemasDelNombre(customerName, nombreCompleto)) {
+      conversation.push({ role: "user", content: customerName });
+    }
     const pregunta = conversation.filter((message) => message.role === "user").at(-1)?.content?.trim();
     if (!pregunta) {
       return res.status(400).json({ error: "No se encontró la consulta que se debe responder." });
