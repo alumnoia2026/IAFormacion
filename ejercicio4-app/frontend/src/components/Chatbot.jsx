@@ -7,8 +7,11 @@ const mensajeInicial = {
   content: "¡Hola! Soy el asistente de atención al cliente. ¿Qué necesitas saber sobre pedidos, envíos, pagos o devoluciones?"
 };
 
+<<<<<<< HEAD
 const BASE_API_URL = API_URL || "http://localhost:3001/api";
 
+=======
+>>>>>>> parent of 33f423d (0.4.4.5)
 function Chatbot() {
   const [abierto, setAbierto] = useState(false);
   const [mensaje, setMensaje] = useState("");
@@ -101,11 +104,20 @@ function Chatbot() {
       conversation = siguientesMensajes
         .filter((message) => message.kind !== "identity" && message.kind !== "greeting")
         .slice(-10)
+<<<<<<< HEAD
         .map(({ role, content: textContent, kind }) => ({ role, content: textContent, kind }));
     } else if (introduciendoNombre && pendingQuestion) {
       conversation = [{ role: "user", content: pendingQuestion }];
     } else {
       conversation = [{ role: "user", content: texto }];
+=======
+        .map(({ role, content: messageContent, kind }) => ({ role, content: messageContent, kind }));
+    } else if (introducingName && pendingQuestion) {
+      // El nombre se verifica por separado; Gemini solo recibe la pregunta pendiente.
+      conversation = [{ role: "user", content: pendingQuestion }];
+    } else {
+      conversation = [{ role: "user", content }];
+>>>>>>> parent of 33f423d (0.4.4.5)
     }
 
     try {
@@ -114,7 +126,11 @@ function Chatbot() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: conversation,
+<<<<<<< HEAD
           customerName: customer?.fullName || (introduciendoNombre ? texto : "")
+=======
+          customerName: customer?.fullName || (introducingName ? content : "")
+>>>>>>> parent of 33f423d (0.4.4.5)
         })
       });
 
