@@ -7,6 +7,11 @@ const mensajeInicial = {
   content: "¡Hola! Soy el asistente de atención al cliente. ¿En qué puedo ayudarte?"
 };
 
+function esConfirmacionDeRegistro(frase) {
+  const normalizada = frase.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es");
+  return /\b(ya me he registrado|ya me registre|ya estoy registrado|ya estoy registrada|estoy registrado|estoy registrada|me acabo de registrar)\b/.test(normalizada);
+}
+
 function Chatbot() {
   const [messages, setMessages] = useState([mensajeInicial]);
   const [text, setText] = useState("");
@@ -91,11 +96,13 @@ function Chatbot() {
         .filter((message) => message.kind !== "identity" && message.kind !== "greeting")
         .slice(-10)
         .map(({ role, content: messageContent, kind }) => ({ role, content: messageContent, kind }));
-    } else if (introducingName && pendingQuestion) {
-      // El nombre se verifica por separado; Gemini solo recibe la pregunta pendiente.
-      conversation = [{ role: "user", content: pendingQuestion }];
     } else {
-      conversation = [{ role: "user", content }];
+      // Conserva los mensajes previos mientras se verifica la identidad. Así el
+      // servidor puede volver a consultar el nombre si el cliente confirma registro.
+      conversation = nextMessages
+        .filter((message) => message.role === "user")
+        .slice(-10)
+        .map(({ role, content: messageContent, kind }) => ({ role, content: messageContent, kind }));
     }
 
     try {
@@ -104,7 +111,7 @@ function Chatbot() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: conversation,
-          customerName: customer?.fullName || (introducingName ? content : "")
+          customerName: customer?.fullName || (introducingName && !esConfirmacionDeRegistro(content) ? content : "")
         })
       });
       const data = await response.json();

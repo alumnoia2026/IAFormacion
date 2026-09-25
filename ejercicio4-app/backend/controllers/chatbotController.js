@@ -24,7 +24,7 @@ function contieneConsultaAdemasDelNombre(frase, nombreCompleto) {
   const resto = normalizarTexto(frase)
     .replace(nombreNormalizado, " ")
     .replace(/\b(te lo acabo de decir|ya te lo dije|te lo he dicho|acabo de decirtelo|ya te habia dicho)\b/g, " ")
-    .replace(/\b(me llamo|soy|mi nombre es|hola|buenas|buenos dias|buenas tardes|buenas noches|y|e)\b/g, " ")
+    .replace(/\b(ya estoy registrado|ya estoy registrada|ya me he registrado|ya me registre|me acabo de registrar|estoy registrado|estoy registrada|me llamo|soy|mi nombre es|hola|buenas|buenos dias|buenas tardes|buenas noches|y|e)\b/g, " ")
     .trim();
   return Boolean(resto);
 }
@@ -36,7 +36,7 @@ function contienePresentacion(frase) {
 function contieneConsulta(frase, nombreCompleto) {
   const resto = normalizarTexto(frase)
     .replace(normalizarTexto(nombreCompleto), " ")
-    .replace(/\b(me llamo|soy|mi nombre es|hola|buenas|buenos dias|buenas tardes|buenas noches)\b/g, " ")
+    .replace(/\b(ya estoy registrado|ya estoy registrada|ya me he registrado|ya me registre|me acabo de registrar|estoy registrado|estoy registrada|me llamo|soy|mi nombre es|hola|buenas|buenos dias|buenas tardes|buenas noches)\b/g, " ")
     .trim();
   return Boolean(resto);
 }
@@ -103,10 +103,13 @@ export const responderChatbot = async (req, res) => {
     const customerName = typeof req.body?.customerName === "string"
       ? req.body.customerName.trim().replace(/\s+/g, " ")
       : "";
-    const ultimoMensajeUsuario = messages.filter((message) => message.role === "user").at(-1)?.content || "";
-    const fraseDeIdentificacion = customerName || ultimoMensajeUsuario;
+    const mensajesUsuario = messages.filter((message) => message.role === "user");
+    const ultimoMensajeUsuario = mensajesUsuario.at(-1)?.content || "";
+    const frasesDeIdentificacion = customerName
+      ? [customerName]
+      : mensajesUsuario.map((message) => message.content);
 
-    if (!fraseDeIdentificacion) {
+    if (mensajesUsuario.length === 0) {
       return res.json({
         needsName: true,
         reply: "Para dirigirme a ti por tu nombre y apellido, ¿cómo te llamas?"
@@ -119,9 +122,10 @@ export const responderChatbot = async (req, res) => {
       SELECT id_cliente, nombre, apellido
       FROM clientes
     `);
-    const matchingClients = registeredClients.filter((registeredClient) =>
-      laFraseIncluyeNombre(fraseDeIdentificacion, `${registeredClient.nombre} ${registeredClient.apellido}`)
-    );
+    const matchingClients = registeredClients.filter((registeredClient) => {
+      const nombreCompleto = `${registeredClient.nombre} ${registeredClient.apellido}`;
+      return frasesDeIdentificacion.some((frase) => laFraseIncluyeNombre(frase, nombreCompleto));
+    });
 
     if (matchingClients.length === 0) {
       if (!customerName && !contienePresentacion(ultimoMensajeUsuario)) {
@@ -167,7 +171,8 @@ export const responderChatbot = async (req, res) => {
     );
     // En el turno de identificación se conserva la pregunta inicial. Solo se añade
     // el texto original de ese turno si también contiene una consulta nueva.
-    if (customerName && contieneConsultaAdemasDelNombre(customerName, nombreCompleto)) {
+    if (customerName && contieneConsultaAdemasDelNombre(customerName, nombreCompleto) &&
+      !conversation.some((message) => message.role === "user" && message.content === customerName)) {
       conversation.push({ role: "user", content: customerName });
     }
     const pregunta = conversation.filter((message) => message.role === "user").at(-1)?.content?.trim();
