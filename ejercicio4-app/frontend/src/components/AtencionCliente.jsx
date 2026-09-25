@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-
-const API_URL = "http://localhost:3000/api";
+import { API_URL } from "../config";
 
 function AtencionCliente() {
   const [atenciones, setAtenciones] = useState([]);
@@ -17,8 +16,17 @@ function AtencionCliente() {
     }
   };
 
-  useEffect(() => { cargarAtenciones(); }, []);
+  useEffect(() => {
+  cargarAtenciones
+  ();
 
+  const intervalo = setInterval(() => {
+    cargarAtenciones();
+  }, 3000);
+
+  return () => clearInterval(intervalo);
+
+}, []);
   const handleChange = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value });
   };
