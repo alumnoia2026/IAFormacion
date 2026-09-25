@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import clientesRoutes from "./routes/clientesRoutes.js";
 import atencionRoutes from "./routes/atencionRoutes.js";
 import consultaRoutes from "./routes/consultaRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
 app.use("/api/clientes", clientesRoutes);
 app.use("/api/atencion", atencionRoutes);
 app.use("/api/consulta", consultaRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

@@ -1,0 +1,30 @@
+# Entornos
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Datos generados
+data/processed/*
+!data/processed/.gitkeep
+
+# Modelos generados
+models/*
+!models/.gitkeep
+
+# Datos originales
+data/raw/*
+!data/raw/.gitkeep
+
+# Variables de entorno
+.env
+
+# SO / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

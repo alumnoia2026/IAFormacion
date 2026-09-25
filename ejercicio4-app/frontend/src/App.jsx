@@ -1,6 +1,7 @@
 import React from "react";
 import Clientes from "./components/Clientes";
 import AtencionCliente from "./components/AtencionCliente";
+import Chatbot from "./components/Chatbot";
 import "./App.css";
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
 
         <AtencionCliente />
       </main>
+      <Chatbot />
     </div>
   );
 }

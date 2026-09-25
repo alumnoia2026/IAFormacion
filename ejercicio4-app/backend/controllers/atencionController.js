@@ -86,3 +86,16 @@ export const deleteAtencion = async (req, res) => {
     res.status(500).json({ error: "Error al eliminar la consulta" });
   }
 };
+
+export const consultaAtencionById = async (req, res) => {
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM atencion_cliente WHERE id = ?", [req.params.id]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al buscar la consulta" });
+  }
+};

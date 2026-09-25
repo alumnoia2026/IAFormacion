@@ -1,7 +1,12 @@
 import express from "express";
 import pool from "../db.js";
+import {
+  consultaAtencionById
+} from "../controllers/atencionController.js";
 
 const router = express.Router();
+
+router.get("/id/:id", consultaAtencionById);
 
 router.get("/:id", async (req, res) => {
   try {
