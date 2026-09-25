@@ -23,7 +23,20 @@ function contieneConsultaAdemasDelNombre(frase, nombreCompleto) {
   const nombreNormalizado = normalizarTexto(nombreCompleto);
   const resto = normalizarTexto(frase)
     .replace(nombreNormalizado, " ")
+    .replace(/\b(te lo acabo de decir|ya te lo dije|te lo he dicho|acabo de decirtelo|ya te habia dicho)\b/g, " ")
     .replace(/\b(me llamo|soy|mi nombre es|hola|buenas|buenos dias|buenas tardes|buenas noches|y|e)\b/g, " ")
+    .trim();
+  return Boolean(resto);
+}
+
+function contienePresentacion(frase) {
+  return /\b(me llamo|soy|mi nombre es)\b/.test(normalizarTexto(frase));
+}
+
+function contieneConsulta(frase, nombreCompleto) {
+  const resto = normalizarTexto(frase)
+    .replace(normalizarTexto(nombreCompleto), " ")
+    .replace(/\b(me llamo|soy|mi nombre es|hola|buenas|buenos dias|buenas tardes|buenas noches)\b/g, " ")
     .trim();
   return Boolean(resto);
 }
@@ -70,8 +83,10 @@ export const responderChatbot = async (req, res) => {
     const customerName = typeof req.body?.customerName === "string"
       ? req.body.customerName.trim().replace(/\s+/g, " ")
       : "";
+    const ultimoMensajeUsuario = messages.filter((message) => message.role === "user").at(-1)?.content || "";
+    const fraseDeIdentificacion = customerName || ultimoMensajeUsuario;
 
-    if (!customerName) {
+    if (!fraseDeIdentificacion) {
       return res.json({
         needsName: true,
         reply: "Para dirigirme a ti por tu nombre y apellido, ¿cómo te llamas?"
@@ -85,10 +100,16 @@ export const responderChatbot = async (req, res) => {
       FROM clientes
     `);
     const matchingClients = registeredClients.filter((registeredClient) =>
-      laFraseIncluyeNombre(customerName, `${registeredClient.nombre} ${registeredClient.apellido}`)
+      laFraseIncluyeNombre(fraseDeIdentificacion, `${registeredClient.nombre} ${registeredClient.apellido}`)
     );
 
     if (matchingClients.length === 0) {
+      if (!customerName && !contienePresentacion(ultimoMensajeUsuario)) {
+        return res.json({
+          needsName: true,
+          reply: "Para dirigirme a ti por tu nombre y apellido, ¿cómo te llamas?"
+        });
+      }
       return res.json({
         needsName: true,
         registered: false,
@@ -121,14 +142,18 @@ export const responderChatbot = async (req, res) => {
     const conversation = messages.filter((message) =>
       message.kind !== "identity" && message.kind !== "greeting"
     );
-    // Si el cliente dijo su nombre junto con una consulta, Gemini recibe el texto
-    // original completo del usuario, sin reformular la transcripción.
-    if (contieneConsultaAdemasDelNombre(customerName, nombreCompleto)) {
+    // En el turno de identificación se conserva la pregunta inicial. Solo se añade
+    // el texto original de ese turno si también contiene una consulta nueva.
+    if (customerName && contieneConsultaAdemasDelNombre(customerName, nombreCompleto)) {
       conversation.push({ role: "user", content: customerName });
     }
     const pregunta = conversation.filter((message) => message.role === "user").at(-1)?.content?.trim();
-    if (!pregunta) {
-      return res.status(400).json({ error: "No se encontró la consulta que se debe responder." });
+    if (!pregunta || (!customerName && !contieneConsulta(ultimoMensajeUsuario, nombreCompleto))) {
+      return res.json({
+        reply: `Gracias, ${nombreCompleto}. ¿En qué puedo ayudarte?`,
+        customer: { id: cliente.id_cliente, nombre: cliente.nombre, apellido: cliente.apellido },
+        saved: false
+      });
     }
 
     const controller = new AbortController();
