@@ -135,6 +135,9 @@ tr:hover { background: #f8fafc; }
 .chatbot-form input { min-width: 0; }
 .chatbot-form button { flex: 0 0 auto; }
 .chatbot-form button:disabled { opacity: .55; cursor: not-allowed; }
+.chatbot-form .chatbot-mic { min-width: 44px; padding: 10px 12px; background: #475569; }
+.chatbot-form .chatbot-mic:hover { background: #334155; }
+.chatbot-form .chatbot-mic.listening { background: #b91c1c; }
 .chatbot-error { margin: 0 16px 10px; color: #991b1b; font-size: 14px; }
 .chatbot-note { padding: 0 16px 12px; }
 

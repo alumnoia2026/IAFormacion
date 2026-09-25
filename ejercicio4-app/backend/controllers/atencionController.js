@@ -4,7 +4,9 @@ export const getAtenciones = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT ac.id_atencion, ac.id AS id_cliente,
-             ac.Consulta AS consulta, ac.Respuesta AS respuesta,
+             CASE WHEN LEFT(ac.Consulta, 10) = '[CHATBOT] '
+                  THEN SUBSTRING(ac.Consulta, 11) ELSE ac.Consulta END AS consulta,
+             ac.Respuesta AS respuesta,
              c.nombre, c.apellido, c.email
       FROM atencion_cliente ac
       INNER JOIN clientes c ON ac.id = c.id_cliente
@@ -21,7 +23,9 @@ export const getAtencionById = async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT ac.id_atencion, ac.id AS id_cliente,
-              ac.Consulta AS consulta, ac.Respuesta AS respuesta,
+              CASE WHEN LEFT(ac.Consulta, 10) = '[CHATBOT] '
+                   THEN SUBSTRING(ac.Consulta, 11) ELSE ac.Consulta END AS consulta,
+              ac.Respuesta AS respuesta,
               c.nombre, c.apellido, c.email
        FROM atencion_cliente ac
        INNER JOIN clientes c ON ac.id = c.id_cliente
@@ -167,9 +171,13 @@ export const updateAtencion = async (req, res) => {
 
     const [result] = await pool.query(
       `UPDATE atencion_cliente
-       SET Consulta = ?, Respuesta = ?
+       SET Consulta = CASE
+             WHEN LEFT(Consulta, 10) = '[CHATBOT] ' THEN CONCAT('[CHATBOT] ', ?)
+             ELSE ?
+           END,
+           Respuesta = ?
        WHERE id_atencion = ?`,
-      [consulta, respuesta || null, req.params.id]
+      [consulta, consulta, respuesta || null, req.params.id]
     );
 
     if (!result.affectedRows) {
