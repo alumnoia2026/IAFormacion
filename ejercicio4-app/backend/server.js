@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import clientesRoutes from "./routes/clientesRoutes.js";
 import atencionRoutes from "./routes/atencionRoutes.js";
 import consultaRoutes from "./routes/consultaRoutes.js";
+import chatbotRoutes from "./routes/chatbotRoutes.js";
 
 dotenv.config();
 
@@ -16,7 +17,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "X-API-Key"]
 }));
-app.use(express.json());
+app.use(express.json({ limit: "20kb" }));
 
 app.get("/", (req, res) => {
   res.json({ message: "API ejercicio4 funcionando correctamente" });
@@ -25,6 +26,7 @@ app.get("/", (req, res) => {
 app.use("/api/clientes", clientesRoutes);
 app.use("/api/atencion", atencionRoutes);
 app.use("/api/consulta", consultaRoutes);
+app.use("/api/chatbot", chatbotRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
