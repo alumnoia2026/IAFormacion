@@ -4,9 +4,15 @@ channels:
   - defaults
 dependencies:
   - python=3.11
+  - defaults
+dependencies:
+  - python=3.11
   - numpy
   - pandas
-  - matplotlib
   - scikit-learn
+  - matplotlib
   - jupyter
   - pip
+  - pip:
+      - notebook
+

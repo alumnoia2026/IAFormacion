@@ -1,17 +1,30 @@
 # proyecto_ia
 
-Estructura de proyecto basada en Cookiecutter Data Science.
+Proyecto base para desarrollar un sistema de Inteligencia Artificial.
 
 ## Estructura
 
-- `data/raw/`: datos originales.
-- `data/processed/`: datos procesados.
-- `notebooks/`: cuadernos Jupyter.
-- `src/`: código fuente.
-- `models/`: modelos entrenados.
-- `requirements.txt`: dependencias de Python.
-- `environment.yml`: entorno Conda.
-- `.gitignore`: archivos ignorados por Git.
+```text
+proyecto_ia/
+├── data/
+│   ├── raw/
+│   └── processed/
+├── notebooks/
+├── src/
+├── models/
+├── requirements.txt
+├── environment.yml
+├── .gitignore
+└── README.md
+```
+
+## Descripción de carpetas
+
+- `data/raw/`: datos originales, sin modificar.
+- `data/processed/`: datos preparados para el análisis o entrenamiento.
+- `notebooks/`: notebooks de Jupyter para pruebas y experimentación.
+- `src/`: código fuente del proyecto.
+- `models/`: modelos entrenados y archivos relacionados.
 
 ## Instalación con Conda
 
@@ -25,3 +38,7 @@ conda activate entorno_ia
 ```bash
 pip install -r requirements.txt
 ```
+
+## Inicio
+
+Coloca los datos originales en `data/raw/` y desarrolla el procesamiento y los modelos dentro de `src/`.
