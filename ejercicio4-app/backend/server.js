@@ -10,13 +10,30 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const allowedOrigins = ["https://iaformacion-1.onrender.com"];
 
+// 1. Añade las URLs de localhost (3000 o 5173 según uses React estándar o Vite)
+const allowedOrigins = [
+  "https://iaformacion-1.onrender.com", 
+  "http://localhost:5173",  // Común si usas Vite
+  "http://localhost:3000"   // Común si usas Create React App
+];
+
+// 2. Modifica la configuración de CORS para validar el origen dinámicamente
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Permitir peticiones sin origen (como Postman o llamadas del propio servidor)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("No permitido por CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "X-API-Key"]
 }));
+
 app.use(express.json({ limit: "20kb" }));
 
 app.get("/", (req, res) => {
