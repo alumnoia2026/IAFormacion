@@ -141,9 +141,7 @@ export const guardarRespuestaIA = async (req, res) => {
 
     const [result] = await pool.query(
       `UPDATE atencion_cliente
-       SET Respuesta = ?,
-           estado_respuesta = 'respondida',
-           fecha_respuesta = CURRENT_TIMESTAMP
+       SET Respuesta = ?
        WHERE id_atencion = ?`,
       [respuesta, id_atencion]
     );
@@ -177,11 +175,9 @@ export const updateAtencion = async (req, res) => {
              WHEN LEFT(Consulta, 10) = '[CHATBOT] ' THEN CONCAT('[CHATBOT] ', ?)
              ELSE ?
            END,
-           Respuesta = ?,
-           estado_respuesta = CASE WHEN ? IS NULL OR TRIM(?) = '' THEN 'pendiente' ELSE 'respondida' END,
-           fecha_respuesta = CASE WHEN ? IS NULL OR TRIM(?) = '' THEN NULL ELSE CURRENT_TIMESTAMP END
+           Respuesta = ?
        WHERE id_atencion = ?`,
-      [consulta, consulta, respuesta || null, respuesta || null, respuesta || null, respuesta || null, respuesta || null, req.params.id]
+      [consulta, consulta, respuesta || null, req.params.id]
     );
 
     if (!result.affectedRows) {
@@ -210,18 +206,5 @@ export const deleteAtencion = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al eliminar la consulta" });
-  }
-};
-
-export const consultaAtencionById = async (req, res) => {
-
-  try {
-    const [rows] = await pool.query(
-      "SELECT * FROM atencion_cliente WHERE id = ?", [req.params.id]
-    );
-    res.json(rows);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error al buscar la consulta" });
   }
 };

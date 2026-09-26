@@ -1,45 +1,37 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { API_URL } from "../config";
 
 const mensajeInicial = {
   role: "assistant",
   kind: "greeting",
-  content: "¡Hola! Soy el asistente de atención al cliente. ¿Qué necesitas saber sobre pedidos, envíos, pagos o devoluciones?"
+  content: "¡Hola! Soy el asistente de atención al cliente. ¿En qué puedo ayudarte?"
 };
 
-const BASE_API_URL = API_URL || "http://localhost:3001/api";
 function Chatbot() {
-  const [abierto, setAbierto] = useState(false);
-  const [mensaje, setMensaje] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [mensajes, setMensajes] = useState([mensajeInicial]);
+  const [messages, setMessages] = useState([mensajeInicial]);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [listening, setListening] = useState(false);
   const [customer, setCustomer] = useState(null);
   const [awaitingName, setAwaitingName] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState("");
-  const listaRef = useRef(null);
   const recognitionRef = useRef(null);
-  const SpeechRecognition =
-    typeof window !== "undefined"
-      ? window.SpeechRecognition || window.webkitSpeechRecognition
-      : null;
-
-  useEffect(() => {
-    if (abierto && listaRef.current) {
-      listaRef.current.scrollTop = listaRef.current.scrollHeight;
-    }
-  }, [abierto, mensajes]);
+  const SpeechRecognition = typeof window !== "undefined"
+    ? window.SpeechRecognition || window.webkitSpeechRecognition
+    : null;
 
   const alternarMicrofono = () => {
     if (!SpeechRecognition) {
       setError("Tu navegador no admite dictado por voz. Puedes escribir la consulta.");
       return;
     }
+
     if (listening) {
       recognitionRef.current?.stop();
       return;
     }
+
     setError("");
     const recognition = new SpeechRecognition();
     recognition.lang = "es-ES";
@@ -52,18 +44,17 @@ function Chatbot() {
         .map((result) => result[0].transcript)
         .join(" ")
         .trim();
-
       if (transcript) {
-        setMensaje((actual) => [actual.trim(), transcript].filter(Boolean).join(" "));
+        setText((current) => [current.trim(), transcript].filter(Boolean).join(" "));
       }
     };
     recognition.onerror = (event) => {
-      const mensajesError = {
+      const messagesByError = {
         "not-allowed": "Permite el acceso al micrófono en el navegador para dictar.",
         "service-not-allowed": "El navegador no permite el reconocimiento de voz.",
         "no-speech": "No se detectó voz. Inténtalo de nuevo."
       };
-      setError(mensajesError[event.error] || "No se pudo reconocer la voz. Puedes escribir la consulta.");
+      setError(messagesByError[event.error] || "No se pudo reconocer la voz. Puedes escribir la consulta.");
       setListening(false);
     };
     recognition.onend = () => setListening(false);
@@ -77,80 +68,75 @@ function Chatbot() {
     }
   };
 
-  const enviar = async (event) => {
+  const enviarMensaje = async (event) => {
     event.preventDefault();
-    const texto = mensaje.trim();
-    if (!texto || enviando) return;
+    const content = text.trim();
+    if (!content || sending) return;
 
-    const introduciendoNombre = !customer && awaitingName;
+    const introducingName = !customer && awaitingName;
     const userMessage = {
       role: "user",
-      content: texto,
-      ...(introduciendoNombre ? { kind: "identity" } : {})
+      content,
+      ...(introducingName ? { kind: "identity" } : {})
     };
-
-    const siguientesMensajes = [...mensajes, userMessage];
-    setMensajes(siguientesMensajes);
-    setMensaje("");
-    setEnviando(true);
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
+    setText("");
+    setSending(true);
     setError("");
 
     let conversation;
     if (customer) {
-      conversation = siguientesMensajes
+      conversation = nextMessages
         .filter((message) => message.kind !== "identity" && message.kind !== "greeting")
         .slice(-10)
         .map(({ role, content: messageContent, kind }) => ({ role, content: messageContent, kind }));
-    } else if (introduciendoNombre && pendingQuestion) {
+    } else if (introducingName && pendingQuestion) {
       // El nombre se verifica por separado; Gemini solo recibe la pregunta pendiente.
       conversation = [{ role: "user", content: pendingQuestion }];
     } else {
-      conversation = [{ role: "user", content: texto }];
+      conversation = [{ role: "user", content }];
     }
 
     try {
-      const respuesta = await fetch(`${BASE_API_URL}/chatbot`, {
+      const response = await fetch(`${API_URL}/chatbot`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: conversation,
-          customerName: customer?.fullName || (introduciendoNombre ? texto : "")
+          customerName: customer?.fullName || (introducingName ? content : "")
         })
       });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No se pudo obtener una respuesta.");
 
-      const datos = await respuesta.json();
-      if (!respuesta.ok) throw new Error(datos.error || "No se pudo obtener una respuesta.");
-
-      if (datos.needsName) {
-        if (!customer && !introduciendoNombre) setPendingQuestion(texto);
+      if (data.needsName) {
+        if (!customer && !introducingName) setPendingQuestion(content);
         setAwaitingName(true);
       }
-      if (datos.needsSupport) {
+      if (data.needsSupport) {
         setCustomer(null);
         setAwaitingName(false);
         setPendingQuestion("");
       }
-      if (datos.customer) {
+      if (data.customer) {
         setCustomer({
-          ...datos.customer,
-          fullName: `${datos.customer.nombre} ${datos.customer.apellido}`
+          ...data.customer,
+          fullName: `${data.customer.nombre} ${data.customer.apellido}`
         });
         setAwaitingName(false);
         setPendingQuestion("");
       }
 
-      setMensajes((actuales) => [
-        ...actuales,
-        {
-          role: "assistant",
-          content: datos.reply || datos.respuesta,
-          ...((datos.needsName || datos.needsSupport) ? { kind: "identity" } : {})
-        }
-      ]);
-    } catch (errorChatbot) {
-      setError(errorChatbot.message || "No se pudo conectar con el asistente.");
+      setMessages((current) => [...current, {
+        role: "assistant",
+        content: data.reply,
+        ...((data.needsName || data.needsSupport) ? { kind: "identity" } : {})
+      }]);
+    } catch (requestError) {
+      setError(requestError.message);
     } finally {
-      setEnviando(false);
+      setSending(false);
     }
   };
 
@@ -159,59 +145,49 @@ function Chatbot() {
     : "Escribe tu consulta…";
 
   return (
-    <>
-      {abierto && (
-        <aside className="chat-panel" aria-label="Chat de atención al cliente">
-          <div className="chat-cabecera">
-            <div>
-              <strong>Asistente virtual</strong>
-              <span>Atención personalizada para clientes registrados</span>
-            </div>
-            <button className="chat-cerrar" onClick={() => setAbierto(false)} aria-label="Cerrar chat">
-              ×
-            </button>
+    <aside className="chatbot" aria-label="Chat de atención al cliente">
+      <div className="chatbot-heading">
+        <div>
+          <h3>Asistente virtual</h3>
+          <p>Atención personalizada para clientes registrados</p>
+        </div>
+        <span className="chatbot-status">En línea</span>
+      </div>
+      <div className="chatbot-messages" aria-live="polite">
+        {messages.map((message, index) => (
+          <div key={`${index}-${message.role}`} className={`chat-message ${message.role}`}>
+            {message.content}
           </div>
-          <div className="chat-mensajes" ref={listaRef} aria-live="polite">
-            {mensajes.map((item, index) => (
-              <div className={`chat-mensaje ${item.role || item.tipo}`} key={`${index}-${item.role || item.tipo}`}>
-                {item.content || item.texto}
-              </div>
-            ))}
-            {enviando && <div className="chat-mensaje bot">Estoy buscando una respuesta…</div>}
-          </div>
-          {error && <div className="chatbot-error" role="alert">{error}</div>}
-          <form className="chat-formulario" onSubmit={enviar}>
-            <input
-              aria-label={placeholder}
-              placeholder={placeholder}
-              value={mensaje}
-              onChange={(event) => setMensaje(event.target.value)}
-              maxLength={2000}
-              disabled={enviando}
-            />
-            <button
-              type="button"
-              className={`chatbot-mic${listening ? " listening" : ""}`}
-              onClick={alternarMicrofono}
-              disabled={enviando || !SpeechRecognition}
-              aria-label={listening ? "Detener dictado" : "Dictar consulta"}
-              title={!SpeechRecognition ? "El navegador no admite dictado por voz" : listening ? "Detener dictado" : "Dictar consulta"}
-            >
-              {listening ? "⏹️" : "🎙️"}
-            </button>
-            <button type="submit" disabled={!mensaje.trim() || enviando}>Enviar</button>
-          </form>
-          <p className="chatbot-note">
-            Indica tu nombre y apellido registrados. Las consultas y respuestas se guardan en tu ficha de atención.
-          </p>
-        </aside>
-      )}
-      <button className="chat-boton" onClick={() => setAbierto((valor) => !valor)} aria-label={abierto ? "Cerrar asistente" : "Abrir asistente"}>
-        {abierto ? "Cerrar" : "¿Necesitas ayuda?"}
-      </button>
-    </>
+        ))}
+        {sending && <div className="chat-message assistant">Estoy preparando una respuesta…</div>}
+      </div>
+      {error && <div className="chatbot-error" role="alert">{error}</div>}
+      <form className="chatbot-form" onSubmit={enviarMensaje}>
+        <input
+          aria-label={placeholder}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          placeholder={placeholder}
+          maxLength={2000}
+          disabled={sending}
+        />
+        <button
+          type="button"
+          className={`chatbot-mic${listening ? " listening" : ""}`}
+          onClick={alternarMicrofono}
+          disabled={sending || !SpeechRecognition}
+          aria-label={listening ? "Detener dictado" : "Dictar consulta"}
+          title={!SpeechRecognition ? "El navegador no admite dictado por voz" : listening ? "Detener dictado" : "Dictar consulta"}
+        >
+          {listening ? "⏹️" : "🎙️"}
+        </button>
+        <button type="submit" disabled={sending || !text.trim()}>Enviar</button>
+      </form>
+      <p className="chatbot-note">
+        Indica tu nombre y apellido registrados. Las consultas y respuestas se guardan en tu ficha de atención.
+      </p>
+    </aside>
   );
 }
 
 export default Chatbot;
-
