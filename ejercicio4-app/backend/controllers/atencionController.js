@@ -3,14 +3,14 @@ import pool from "../db.js";
 export const getAtenciones = async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT ac.id_atencion, ac.id AS id_cliente,
+      SELECT ac.id AS id, ac.id AS id_cliente,
              CASE WHEN LEFT(ac.Consulta, 10) = '[CHATBOT] '
                   THEN SUBSTRING(ac.Consulta, 11) ELSE ac.Consulta END AS consulta,
              ac.Respuesta AS respuesta,
              c.nombre, c.apellido, c.email
       FROM atencion_cliente ac
       INNER JOIN clientes c ON ac.id = c.id_cliente
-      ORDER BY ac.id_atencion
+      ORDER BY ac.id, ac.Consulta
     `);
     res.json(rows);
   } catch (error) {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Clientes from "./components/Clientes";
 import AtencionCliente from "./components/AtencionCliente";
+import Chatbot from "./components/Chatbot";
 import "./App.css";
 
 const paginas = ["Inicio", "Productos", "Contacto", "Administración"];
@@ -208,6 +209,7 @@ function App() {
       </main>
 
       <footer className="site-footer"><span>TONYMARKT <span className="footer-dot">●</span> Tecnología con sentido del humor</span><span>© 2026 · Todos los caprichos reservados</span></footer>
+      <Chatbot />
     </div>
   );
 }

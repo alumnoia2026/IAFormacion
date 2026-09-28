@@ -7,6 +7,26 @@ const mensajeInicial = {
   content: "¡Hola! Soy el asistente de atención al cliente. ¿En qué puedo ayudarte?"
 };
 
+function esConfirmacionRegistro(frase) {
+  const normalizada = frase
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const respuestaBreve = /^(si|vale|ok|okay|de acuerdo|perfecto|genial|listo|lista|hecho|hecha|correcto|correcta|ya|ya esta|ya esta hecho|ya esta hecha)$/.test(normalizada);
+  const sinCortesia = normalizada.replace(/^(?:(?:si|vale|ok|okay|perfecto|genial|correcto|claro|de acuerdo|listo|lista|hecho|hecha)\s+)+/, "");
+  const accionConfirmada = sinCortesia.replace(/^(?:ya|ahora|al final)\s+/, "");
+  const respuestaBreveConCortesia = /^(si|ya|ya esta|ya esta hecho|ya esta hecha|hecho|hecha|listo|lista|correcto|correcta)$/.test(accionConfirmada);
+  const confirmaRegistro = /^(?:lo hice|lo he hecho|lo complete|lo he completado|esta hecho|esta hecho ya|lo tengo hecho|lo tengo listo|ya estoy|ya estoy registrado|ya estoy registrada|me registre|me he registrado|me acabo de registrar|acabo de registrarme|me di de alta|ya me di de alta|me he dado de alta|acabo de darme de alta|estoy dado de alta|estoy dada de alta|estoy registrado|estoy registrada|he completado el registro|complete el registro|termine el registro|he terminado el registro|finalice el registro|hice el registro|he hecho el registro|registre mis datos|he registrado mis datos|cree la cuenta|he creado la cuenta|ya tengo cuenta|tengo cuenta|el registro esta hecho|el registro esta completo|el registro esta completado|la cuenta esta creada|la cuenta esta activada)$/.test(accionConfirmada);
+  return respuestaBreve || respuestaBreveConCortesia || confirmaRegistro;
+}
+
+function incluyePresentacionNombre(frase) {
+  return /\b(?:me llamo|mi nombre es|soy)\s+[\p{L}][\p{L}'’-]*(?:\s+[\p{L}][\p{L}'’-]*){1,3}/iu.test(frase);
+}
+
 function Chatbot() {
   const [messages, setMessages] = useState([mensajeInicial]);
   const [text, setText] = useState("");
@@ -15,7 +35,10 @@ function Chatbot() {
   const [listening, setListening] = useState(false);
   const [customer, setCustomer] = useState(null);
   const [awaitingName, setAwaitingName] = useState(false);
+  const [candidateName, setCandidateName] = useState("");
+  const [awaitingRegistration, setAwaitingRegistration] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
   const recognitionRef = useRef(null);
   const SpeechRecognition = typeof window !== "undefined"
     ? window.SpeechRecognition || window.webkitSpeechRecognition
@@ -73,11 +96,13 @@ function Chatbot() {
     const content = text.trim();
     if (!content || sending) return;
 
-    const introducingName = !customer && awaitingName;
+    const confirmingRegistration = !customer && awaitingRegistration && esConfirmacionRegistro(content);
+    const introducingName = !customer && awaitingName && !confirmingRegistration;
+    const introducedNameWithQuestion = !customer && !awaitingName && incluyePresentacionNombre(content);
     const userMessage = {
       role: "user",
       content,
-      ...(introducingName ? { kind: "identity" } : {})
+      ...(!customer && awaitingName ? { kind: "identity" } : {})
     };
     const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
@@ -91,8 +116,8 @@ function Chatbot() {
         .filter((message) => message.kind !== "identity" && message.kind !== "greeting")
         .slice(-10)
         .map(({ role, content: messageContent, kind }) => ({ role, content: messageContent, kind }));
-    } else if (introducingName && pendingQuestion) {
-      // El nombre se verifica por separado; Gemini solo recibe la pregunta pendiente.
+    } else if ((introducingName || confirmingRegistration) && pendingQuestion) {
+      // Identidad y confirmación no reemplazan la consulta original.
       conversation = [{ role: "user", content: pendingQuestion }];
     } else {
       conversation = [{ role: "user", content }];
@@ -104,19 +129,26 @@ function Chatbot() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: conversation,
-          customerName: customer?.fullName || (introducingName ? content : "")
+          customerName: customer?.fullName || (confirmingRegistration ? candidateName : introducingName || introducedNameWithQuestion ? content : ""),
+          registrationConfirmed: confirmingRegistration
         })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No se pudo obtener una respuesta.");
 
       if (data.needsName) {
-        if (!customer && !introducingName) setPendingQuestion(content);
+        if (!customer && !introducingName && !confirmingRegistration) setPendingQuestion(content);
         setAwaitingName(true);
+      }
+      if (data.registered === false) {
+        setAwaitingRegistration(true);
+        if (introducingName || introducedNameWithQuestion) setCandidateName(content);
       }
       if (data.needsSupport) {
         setCustomer(null);
         setAwaitingName(false);
+        setAwaitingRegistration(false);
+        setCandidateName("");
         setPendingQuestion("");
       }
       if (data.customer) {
@@ -125,6 +157,8 @@ function Chatbot() {
           fullName: `${data.customer.nombre} ${data.customer.apellido}`
         });
         setAwaitingName(false);
+        setAwaitingRegistration(false);
+        setCandidateName("");
         setPendingQuestion("");
       }
 
@@ -140,18 +174,37 @@ function Chatbot() {
     }
   };
 
-  const placeholder = !customer && awaitingName
-    ? "Escribe tu nombre y apellido registrados…"
+  const placeholder = !customer && awaitingRegistration
+    ? "Escribe «ya lo hice» o confirma tu nombre…"
+    : !customer && awaitingName
+      ? "Escribe tu nombre y apellido registrados…"
     : "Escribe tu consulta…";
 
   return (
-    <aside className="chatbot" aria-label="Chat de atención al cliente">
+    <div className="chatbot-widget">
+      {!isOpen && <button
+        type="button"
+        className="chatbot-launcher"
+        onClick={() => setIsOpen(true)}
+        aria-expanded={isOpen}
+        aria-controls="support-chat-window"
+      >
+        <span className="chatbot-launcher-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.4-.75L4 20l1.5-4.2a7.5 7.5 0 1 1 14.5-4.3Z" /><path d="M8.5 11.5h7M8.5 14.5h4.5" /></svg>
+        </span>
+        <span className="chatbot-launcher-copy">
+          <strong>¿Necesitas ayuda?</strong>
+          <small>Escríbenos por el chat</small>
+        </span>
+      </button>}
+      {isOpen && <aside id="support-chat-window" className="chatbot" aria-label="Chat de atención al cliente" role="dialog">
       <div className="chatbot-heading">
         <div>
           <h3>Asistente virtual</h3>
           <p>Atención personalizada para clientes registrados</p>
         </div>
         <span className="chatbot-status">En línea</span>
+        <button type="button" className="chatbot-close" onClick={() => setIsOpen(false)} aria-label="Cerrar chat">×</button>
       </div>
       <div className="chatbot-messages" aria-live="polite">
         {messages.map((message, index) => (
@@ -186,7 +239,8 @@ function Chatbot() {
       <p className="chatbot-note">
         Indica tu nombre y apellido registrados. Las consultas y respuestas se guardan en tu ficha de atención.
       </p>
-    </aside>
+      </aside>}
+    </div>
   );
 }
 

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import Chatbot from "./Chatbot";
 import { API_URL } from "../config";
 
 function Clientes() {
@@ -53,7 +52,6 @@ function Clientes() {
     <section>
       <h2>Clientes</h2>
       {error && <div className="error">{error}</div>}
-      <Chatbot />
       <form onSubmit={handleSubmit} className="formulario">
         <input name="nombre" placeholder="Nombre" value={form.nombre}
           onChange={handleChange} required />
