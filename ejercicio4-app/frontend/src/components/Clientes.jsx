@@ -16,7 +16,7 @@ function Clientes({ adminToken = "", onSessionExpired = () => {} }) {
       const response = await fetch(`${API_URL}/clientes`, {
         headers: { Authorization: `Bearer ${adminToken}` }
       });
-      if (response.status === 401) {
+      if ([401, 403].includes(response.status)) {
         onSessionExpired();
         return;
       }

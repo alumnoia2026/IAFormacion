@@ -6,7 +6,7 @@ import AtencionCliente from "./AtencionCliente";
 function AdminPanel() {
   const [token, setToken] = useState("");
   const [username, setUsername] = useState("");
-  const [credentials, setCredentials] = useState({ username: "", password: "" });
+  const [credentials, setCredentials] = useState({ nombre: "", apellido: "", password: "" });
   const [checking, setChecking] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +43,7 @@ function AdminPanel() {
       window.sessionStorage.setItem("tonymarkt-admin-token", data.token);
       setToken(data.token);
       setUsername(data.username);
-      setCredentials({ username: "", password: "" });
+      setCredentials({ nombre: "", apellido: "", password: "" });
     } catch (loginError) {
       setError(loginError.message);
     } finally {
@@ -68,12 +68,13 @@ function AdminPanel() {
         <div>
           <p className="section-kicker">DATOS PROTEGIDOS</p>
           <h2>{token ? `Sesión de ${username}` : "Acceso para gerencia"}</h2>
-          <p>{token ? "Las listas privadas están desbloqueadas." : "Inicia sesión para consultar las listas de clientes y consultas."}</p>
+          <p>{token ? "Las listas privadas están desbloqueadas." : "Inicia sesión con tu nombre, apellidos y teléfono. Solo las cuentas con rol Administrador pueden acceder."}</p>
         </div>
         {token ? <button className="admin-logout" type="button" onClick={cerrarSesion}>Cerrar sesión</button> : checking ? <p role="status">Comprobando sesión…</p> : (
           <form className="admin-login-form" onSubmit={iniciarSesion}>
-            <label>Usuario<input autoComplete="username" value={credentials.username} onChange={(event) => setCredentials({ ...credentials, username: event.target.value })} required /></label>
-            <label>Contraseña<input type="password" autoComplete="current-password" value={credentials.password} onChange={(event) => setCredentials({ ...credentials, password: event.target.value })} required /></label>
+            <label>Nombre<input autoComplete="given-name" value={credentials.nombre} onChange={(event) => setCredentials({ ...credentials, nombre: event.target.value })} required /></label>
+            <label>Apellidos<input autoComplete="family-name" value={credentials.apellido} onChange={(event) => setCredentials({ ...credentials, apellido: event.target.value })} required /></label>
+            <label>Teléfono (contraseña)<input type="password" inputMode="tel" autoComplete="current-password" value={credentials.password} onChange={(event) => setCredentials({ ...credentials, password: event.target.value })} required /></label>
             <button type="submit" disabled={sending}>{sending ? "Accediendo…" : "Iniciar sesión"}</button>
           </form>
         )}

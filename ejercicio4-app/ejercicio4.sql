@@ -3,6 +3,10 @@
 -- La notificación a Zapier la realizará el BACKEND después de insertar
 -- una nueva consulta. La base de datos no necesita conectarse directamente
 -- a Zapier.
+-- clientes.Rol se crea con Cliente por defecto. Después de cargar los datos,
+-- asigna Administrador manualmente solo a la ficha del gerente.
+-- Este archivo elimina y recrea las tablas; para una base activa usa
+-- migracion-rol-clientes.sql en vez de importar este archivo completo.
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -25,6 +29,7 @@ CREATE TABLE `clientes` (
   `apellido` varchar(50) NOT NULL,
   `email` varchar(100) DEFAULT NULL,
   `telefono` varchar(20) DEFAULT NULL,
+  `Rol` enum('Cliente','Administrador') NOT NULL DEFAULT 'Cliente',
   PRIMARY KEY (`id_cliente`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

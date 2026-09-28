@@ -11,6 +11,8 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// Render funciona detrás de un proxy; permite aplicar el límite de login por IP real.
+app.set("trust proxy", 1);
 
 // 1. Añade las URLs de localhost (3000 o 5173 según uses React estándar o Vite)
 const allowedOrigins = [
