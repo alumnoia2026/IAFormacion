@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Clientes from "./components/Clientes";
-import AtencionCliente from "./components/AtencionCliente";
+import AdminPanel from "./components/AdminPanel";
 import Chatbot from "./components/Chatbot";
 import "./App.css";
 
@@ -128,11 +127,11 @@ function App() {
         </section>}
         {seccionValida === "Administración" && <>
           <div className="admin-intro">
-            <div><p className="section-kicker">ZONA PRIVADA · TON YMARKT</p><h2>Panel de administración</h2>
-              <p>Clientes, consultas y asistencia, todo bajo control.</p></div>
+            <div><p className="section-kicker">ATENCIÓN AL CLIENTE · TON YMARKT</p><h2>Clientes y consultas</h2>
+              <p>Registra tus datos como cliente. La gestión de consultas y las listas requieren acceso de gerencia.</p></div>
             <span className="admin-badge"><span/> SISTEMA ACTIVO</span>
           </div>
-          <div className="admin-grid"><div className="admin-card customers-card"><Clientes /></div><div className="admin-card support-card"><AtencionCliente /></div></div>
+          <AdminPanel />
         </>}
         {seccionValida === "Productos" && <section className="products-content">
           <div className="products-heading">

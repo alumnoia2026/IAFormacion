@@ -5,6 +5,7 @@ import clientesRoutes from "./routes/clientesRoutes.js";
 import atencionRoutes from "./routes/atencionRoutes.js";
 import consultaRoutes from "./routes/consultaRoutes.js";
 import chatbotRoutes from "./routes/chatbotRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 
@@ -31,7 +32,7 @@ app.use(cors({
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "X-API-Key"]
+  allowedHeaders: ["Content-Type", "X-API-Key", "Authorization"]
 }));
 
 app.use(express.json({ limit: "20kb" }));
@@ -44,6 +45,7 @@ app.use("/api/clientes", clientesRoutes);
 app.use("/api/atencion", atencionRoutes);
 app.use("/api/consulta", consultaRoutes);
 app.use("/api/chatbot", chatbotRoutes);
+app.use("/api/auth", authRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

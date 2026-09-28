@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { API_URL } from "../config";
 
-function AtencionCliente() {
+function AtencionCliente({ adminToken = "", onSessionExpired = () => {} }) {
   const [atenciones, setAtenciones] = useState([]);
   const [form, setForm] = useState({ id: "", consulta: "", respuesta: "" });
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const cargarAtenciones = async () => {
     try {
-      const response = await fetch(`${API_URL}/atencion`);
+      const response = await fetch(`${API_URL}/atencion`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      if (response.status === 401) {
+        onSessionExpired();
+        return;
+      }
       if (!response.ok) throw new Error("Error al obtener las consultas");
       setAtenciones(await response.json());
     } catch (error) {
@@ -17,18 +24,14 @@ function AtencionCliente() {
   };
 
   useEffect(() => {
-  cargarAtenciones
-  ();
-
-  const intervalo = setInterval(() => {
+    if (!adminToken) return;
     cargarAtenciones();
-  }, 3000);
-
-  return () => clearInterval(intervalo);
-
-}, []);
+    const intervalo = setInterval(cargarAtenciones, 10000);
+    return () => clearInterval(intervalo);
+  }, [adminToken]);
   const handleChange = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value });
+    setSuccess("");
   };
 
   const handleSubmit = async (event) => {
@@ -36,18 +39,22 @@ function AtencionCliente() {
     try {
       const response = await fetch(`${API_URL}/atencion`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`
+        },
         body: JSON.stringify({
           id: Number(form.id),
           consulta: form.consulta,
-          respuesta: form.respuesta
+          respuesta: form.respuesta || null
         })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Error al crear consulta");
-      await cargarAtenciones();
+      if (adminToken) await cargarAtenciones();
       setForm({ id: "", consulta: "", respuesta: "" });
       setError("");
+      setSuccess("Consulta registrada correctamente.");
     } catch (error) {
       setError(error.message);
     }
@@ -55,8 +62,11 @@ function AtencionCliente() {
 
   return (
     <section>
-      <h2>Atención al cliente</h2>
+      <h2>Consultas y respuestas</h2>
+      {!adminToken ? <p>El registro manual de consultas y respuestas está reservado al gerente. Inicia sesión para acceder.</p> : <>
+      <p>Registra la consulta y la respuesta acordada con el cliente.</p>
       {error && <div className="error">{error}</div>}
+      {success && <div className="form-success" role="status">{success}</div>}
 
       <form onSubmit={handleSubmit} className="formulario">
         <input type="number" name="id" placeholder="ID del cliente"
@@ -65,9 +75,10 @@ function AtencionCliente() {
           value={form.consulta} onChange={handleChange} required />
         <textarea name="respuesta" placeholder="Respuesta"
           value={form.respuesta} onChange={handleChange} />
-        <button type="submit">Añadir consulta</button>
+        <button type="submit">Enviar consulta</button>
       </form>
 
+      <h2>Lista privada de consultas</h2>
       <div className="tabla-container">
         <table>
           <thead>
@@ -84,6 +95,7 @@ function AtencionCliente() {
           </tbody>
         </table>
       </div>
+      </>}
     </section>
   );
 }

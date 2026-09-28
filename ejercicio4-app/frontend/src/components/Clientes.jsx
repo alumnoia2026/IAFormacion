@@ -1,18 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { API_URL } from "../config";
 
-function Clientes() {
+function Clientes({ adminToken = "", onSessionExpired = () => {} }) {
   const [clientes, setClientes] = useState([]);
   const [form, setForm] = useState({
     nombre: "", apellido: "", email: "", telefono: ""
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const cargarClientes = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/clientes`);
+      const response = await fetch(`${API_URL}/clientes`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      if (response.status === 401) {
+        onSessionExpired();
+        return;
+      }
       if (!response.ok) throw new Error("Error al obtener clientes");
       setClientes(await response.json());
     } catch (error) {
@@ -22,10 +29,13 @@ function Clientes() {
     }
   };
 
-  useEffect(() => { cargarClientes(); }, []);
+  useEffect(() => {
+    if (adminToken) cargarClientes();
+  }, [adminToken]);
 
   const handleChange = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value });
+    setSuccess("");
   };
 
   const handleSubmit = async (event) => {
@@ -41,17 +51,18 @@ function Clientes() {
       setClientes([...clientes, data]);
       setForm({ nombre: "", apellido: "", email: "", telefono: "" });
       setError("");
+      setSuccess(`Cliente registrado correctamente. Tu número de cliente es ${data.id_cliente}.`);
     } catch (error) {
       setError(error.message);
     }
   };
 
-  if (loading) return <p>Cargando clientes...</p>;
-
   return (
     <section>
-      <h2>Clientes</h2>
+      <h2>Registro de cliente</h2>
+      <p>Completa estos datos para registrarte en la tienda.</p>
       {error && <div className="error">{error}</div>}
+      {success && <div className="form-success" role="status">{success}</div>}
       <form onSubmit={handleSubmit} className="formulario">
         <input name="nombre" placeholder="Nombre" value={form.nombre}
           onChange={handleChange} required />
@@ -61,9 +72,12 @@ function Clientes() {
           onChange={handleChange} />
         <input name="telefono" placeholder="Teléfono" value={form.telefono}
           onChange={handleChange} />
-        <button type="submit">Añadir cliente</button>
+        <button type="submit">Registrarme</button>
       </form>
 
+      {adminToken && <>
+      <h2>Lista privada de clientes</h2>
+      {loading ? <p>Cargando clientes...</p> :
       <div className="tabla-container">
         <table>
           <thead>
@@ -84,6 +98,8 @@ function Clientes() {
           </tbody>
         </table>
       </div>
+      }
+      </>}
     </section>
   );
 }

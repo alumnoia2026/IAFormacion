@@ -8,13 +8,13 @@ import {
   deleteAtencion
 } from "../controllers/atencionController.js";
 
-import { requireApiKey } from "../middleware/auth.js";
+import { requireAdminAuth, requireApiKey } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.get("/", getAtenciones);
-router.get("/:id", getAtencionById);
-router.post("/", createAtencion);
+router.get("/", requireAdminAuth, getAtenciones);
+router.get("/:id", requireAdminAuth, getAtencionById);
+router.post("/", requireAdminAuth, createAtencion);
 
 router.post(
   "/respuesta-ia",
@@ -22,7 +22,7 @@ router.post(
   guardarRespuestaIA
 );
 
-router.put("/:id", updateAtencion);
-router.delete("/:id", deleteAtencion);
+router.put("/:id", requireAdminAuth, updateAtencion);
+router.delete("/:id", requireAdminAuth, deleteAtencion);
 
 export default router;

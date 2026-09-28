@@ -1,9 +1,10 @@
 import express from "express";
 import pool from "../db.js";
+import { requireAdminAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
