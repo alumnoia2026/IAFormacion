@@ -70,8 +70,8 @@ function Clientes({ adminToken = "", onSessionExpired = () => {} }) {
           onChange={handleChange} required />
         <input type="email" name="email" placeholder="Email" value={form.email}
           onChange={handleChange} />
-        <input name="telefono" placeholder="Teléfono" value={form.telefono}
-          onChange={handleChange} />
+        <input name="telefono" placeholder="Teléfono (también será tu contraseña)" value={form.telefono}
+          onChange={handleChange} required />
         <button type="submit">Registrarme</button>
       </form>
 
@@ -82,7 +82,7 @@ function Clientes({ adminToken = "", onSessionExpired = () => {} }) {
         <table>
           <thead>
             <tr>
-              <th>ID</th><th>Nombre</th><th>Apellido</th><th>Email</th><th>Teléfono</th>
+              <th>ID</th><th>Nombre</th><th>Apellido</th><th>Email</th><th>Teléfono</th><th>Rol</th>
             </tr>
           </thead>
           <tbody>
@@ -93,6 +93,7 @@ function Clientes({ adminToken = "", onSessionExpired = () => {} }) {
                 <td>{cliente.apellido}</td>
                 <td>{cliente.email}</td>
                 <td>{cliente.telefono}</td>
+                <td>{cliente.Rol}</td>
               </tr>
             ))}
           </tbody>

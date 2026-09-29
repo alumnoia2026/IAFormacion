@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { API_URL } from "../config";
 
 const mensajeInicial = {
@@ -27,7 +27,7 @@ function incluyePresentacionNombre(frase) {
   return /\b(?:me llamo|mi nombre es|soy)\s+[\p{L}][\p{L}'’-]*(?:\s+[\p{L}][\p{L}'’-]*){1,3}/iu.test(frase);
 }
 
-function Chatbot() {
+function Chatbot({ authenticatedUser, authToken, authChecking = false, onSessionExpired }) {
   const [messages, setMessages] = useState([mensajeInicial]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -43,6 +43,33 @@ function Chatbot() {
   const SpeechRecognition = typeof window !== "undefined"
     ? window.SpeechRecognition || window.webkitSpeechRecognition
     : null;
+
+  useEffect(() => {
+    if (authChecking) return;
+    if (authenticatedUser) {
+      const fullName = `${authenticatedUser.nombre} ${authenticatedUser.apellido}`.trim();
+      setCustomer({ id: authenticatedUser.id_cliente, nombre: authenticatedUser.nombre, apellido: authenticatedUser.apellido, fullName });
+      setAwaitingName(false);
+      setCandidateName("");
+      setAwaitingRegistration(false);
+      setPendingQuestion("");
+      setMessages([{ role: "assistant", kind: "greeting", content: `Hola, ${fullName}. Ya he identificado tu cuenta. ¿En qué puedo ayudarte?` }]);
+    } else {
+      setCustomer(null);
+      setAwaitingName(false);
+      setCandidateName("");
+      setAwaitingRegistration(false);
+      setPendingQuestion("");
+      setMessages([mensajeInicial]);
+    }
+    setError("");
+  }, [authenticatedUser?.id_cliente, authChecking]);
+
+  useEffect(() => {
+    const abrirChat = () => setIsOpen(true);
+    window.addEventListener("open-support-chat", abrirChat);
+    return () => window.removeEventListener("open-support-chat", abrirChat);
+  }, []);
 
   const alternarMicrofono = () => {
     if (!SpeechRecognition) {
@@ -94,7 +121,7 @@ function Chatbot() {
   const enviarMensaje = async (event) => {
     event.preventDefault();
     const content = text.trim();
-    if (!content || sending) return;
+    if (!content || sending || authChecking) return;
 
     const confirmingRegistration = !customer && awaitingRegistration && esConfirmacionRegistro(content);
     const introducingName = !customer && awaitingName && !confirmingRegistration;
@@ -126,14 +153,18 @@ function Chatbot() {
     try {
       const response = await fetch(`${API_URL}/chatbot`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+        },
         body: JSON.stringify({
           messages: conversation,
-          customerName: customer?.fullName || (confirmingRegistration ? candidateName : introducingName || introducedNameWithQuestion ? content : ""),
+          customerName: authToken ? "" : customer?.fullName || (confirmingRegistration ? candidateName : introducingName || introducedNameWithQuestion ? content : ""),
           registrationConfirmed: confirmingRegistration
         })
       });
       const data = await response.json();
+      if (response.status === 401 && authToken) onSessionExpired?.();
       if (!response.ok) throw new Error(data.error || "No se pudo obtener una respuesta.");
 
       if (data.needsName) {
@@ -222,22 +253,22 @@ function Chatbot() {
           onChange={(event) => setText(event.target.value)}
           placeholder={placeholder}
           maxLength={2000}
-          disabled={sending}
+          disabled={sending || authChecking}
         />
         <button
           type="button"
           className={`chatbot-mic${listening ? " listening" : ""}`}
           onClick={alternarMicrofono}
-          disabled={sending || !SpeechRecognition}
+          disabled={sending || authChecking || !SpeechRecognition}
           aria-label={listening ? "Detener dictado" : "Dictar consulta"}
           title={!SpeechRecognition ? "El navegador no admite dictado por voz" : listening ? "Detener dictado" : "Dictar consulta"}
         >
           {listening ? "⏹️" : "🎙️"}
         </button>
-        <button type="submit" disabled={sending || !text.trim()}>Enviar</button>
+        <button type="submit" disabled={sending || authChecking || !text.trim()}>Enviar</button>
       </form>
       <p className="chatbot-note">
-        Indica tu nombre y apellido registrados. Las consultas y respuestas se guardan en tu ficha de atención.
+        {customer ? `Las consultas y respuestas se guardan en tu ficha, ${customer.fullName}.` : "Indica tu nombre y apellido registrados. Las consultas y respuestas se guardan en tu ficha de atención."}
       </p>
       </aside>}
     </div>

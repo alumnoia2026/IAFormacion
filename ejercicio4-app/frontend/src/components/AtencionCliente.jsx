@@ -50,6 +50,7 @@ function AtencionCliente({ adminToken = "", onSessionExpired = () => {} }) {
         })
       });
       const data = await response.json();
+      if ([401, 403].includes(response.status)) onSessionExpired();
       if (!response.ok) throw new Error(data.error || "Error al crear consulta");
       if (adminToken) await cargarAtenciones();
       setForm({ id: "", consulta: "", respuesta: "" });

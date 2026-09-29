@@ -1,32 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { API_URL } from "../config";
 import Clientes from "./Clientes";
 import AtencionCliente from "./AtencionCliente";
+import PerfilUsuario from "./PerfilUsuario";
 
-function AdminPanel() {
-  const [token, setToken] = useState("");
-  const [username, setUsername] = useState("");
+async function leerRespuestaApi(response) {
+  const body = await response.text();
+  try {
+    return body ? JSON.parse(body) : {};
+  } catch {
+    if (/^\s*<!doctype\s+html|^\s*<html/i.test(body)) {
+      throw new Error("La petición llegó a una página web, no a la API. Revisa VITE_API_URL en Render: debe apuntar al backend y luego hay que reconstruir el frontend.");
+    }
+    throw new Error("El backend no devolvió JSON. Comprueba que el servicio y la ruta /api/auth/login estén desplegados.");
+  }
+}
+
+function AdminPanel({ session, checking, onAuthChange }) {
+  const token = session?.token || "";
+  const user = session?.user || null;
   const [credentials, setCredentials] = useState({ nombre: "", apellido: "", password: "" });
-  const [checking, setChecking] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    const savedToken = window.sessionStorage.getItem("tonymarkt-admin-token");
-    if (!savedToken) {
-      setChecking(false);
-      return;
-    }
-    fetch(`${API_URL}/auth/session`, { headers: { Authorization: `Bearer ${savedToken}` } })
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "La sesión ha caducado.");
-        setToken(savedToken);
-        setUsername(data.username);
-      })
-      .catch(() => window.sessionStorage.removeItem("tonymarkt-admin-token"))
-      .finally(() => setChecking(false));
-  }, []);
 
   const iniciarSesion = async (event) => {
     event.preventDefault();
@@ -38,11 +33,9 @@ function AdminPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials)
       });
-      const data = await response.json();
+      const data = await leerRespuestaApi(response);
       if (!response.ok) throw new Error(data.error || "No se pudo iniciar sesión.");
-      window.sessionStorage.setItem("tonymarkt-admin-token", data.token);
-      setToken(data.token);
-      setUsername(data.username);
+      onAuthChange({ token: data.token, user: data.user });
       setCredentials({ nombre: "", apellido: "", password: "" });
     } catch (loginError) {
       setError(loginError.message);
@@ -52,23 +45,21 @@ function AdminPanel() {
   };
 
   const cerrarSesion = () => {
-    window.sessionStorage.removeItem("tonymarkt-admin-token");
-    setToken("");
-    setUsername("");
+    onAuthChange(null);
   };
 
-  const expiroSesion = () => {
+  const expiroSesion = useCallback(() => {
     cerrarSesion();
     setError("La sesión ha caducado. Inicia sesión de nuevo para ver las listas.");
-  };
+  }, [onAuthChange]);
 
   return (
     <div className="admin-area">
       <section className="admin-access-card">
         <div>
           <p className="section-kicker">DATOS PROTEGIDOS</p>
-          <h2>{token ? `Sesión de ${username}` : "Acceso para gerencia"}</h2>
-          <p>{token ? "Las listas privadas están desbloqueadas." : "Inicia sesión con tu nombre, apellidos y teléfono. Solo las cuentas con rol Administrador pueden acceder."}</p>
+          <h2>{user ? `Sesión de ${user.nombre} ${user.apellido}` : "Iniciar sesión"}</h2>
+          <p>{user ? `Has iniciado sesión como ${user.Rol}.` : "Inicia sesión con tu nombre, apellidos y teléfono para abrir tu perfil."}</p>
         </div>
         {token ? <button className="admin-logout" type="button" onClick={cerrarSesion}>Cerrar sesión</button> : checking ? <p role="status">Comprobando sesión…</p> : (
           <form className="admin-login-form" onSubmit={iniciarSesion}>
@@ -81,10 +72,17 @@ function AdminPanel() {
         {error && <p className="admin-login-error" role="alert">{error}</p>}
       </section>
 
-      <div className="admin-grid">
-        <div className="admin-card customers-card"><Clientes adminToken={token} onSessionExpired={expiroSesion} /></div>
-        <div className="admin-card support-card"><AtencionCliente adminToken={token} onSessionExpired={expiroSesion} /></div>
-      </div>
+      {!user && !checking && <div className="admin-grid">
+        <div className="admin-card customers-card"><Clientes onSessionExpired={expiroSesion} /></div>
+      </div>}
+      {user?.Rol === "Cliente" && <PerfilUsuario token={token} onSessionExpired={expiroSesion} />}
+      {user?.Rol === "Administrador" && <>
+        <PerfilUsuario token={token} onSessionExpired={expiroSesion} />
+        <div className="admin-grid">
+          <div className="admin-card customers-card"><Clientes adminToken={token} onSessionExpired={expiroSesion} /></div>
+          <div className="admin-card support-card"><AtencionCliente adminToken={token} onSessionExpired={expiroSesion} /></div>
+        </div>
+      </>}
     </div>
   );
 }

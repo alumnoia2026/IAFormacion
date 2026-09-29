@@ -4,7 +4,7 @@ import {
   adminSessionSeconds,
   configuracionAdminDisponible,
   emitirTokenAdmin,
-  requireAdminAuth
+  requireAuth
 } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -49,17 +49,17 @@ router.post("/login", async (req, res) => {
       actual.cantidad += 1;
       return res.status(401).json({ error: "Nombre, apellidos o teléfono incorrectos." });
     }
-    if (usuarios[0].Rol !== "Administrador") {
-      const actual = intentosPorIp.get(ip);
-      actual.cantidad += 1;
-      return res.status(403).json({ error: "La cuenta existe, pero no tiene permisos de administrador." });
-    }
-
     intentosPorIp.delete(ip);
     const usuario = usuarios[0];
     res.json({
       token: emitirTokenAdmin(usuario),
       username: `${usuario.nombre} ${usuario.apellido}`,
+      user: {
+        id_cliente: usuario.id_cliente,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        Rol: usuario.Rol
+      },
       expiresIn: adminSessionSeconds
     });
   } catch (error) {
@@ -68,8 +68,26 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/session", requireAdminAuth, (req, res) => {
-  res.json({ username: req.admin.username });
+router.get("/session", requireAuth, (req, res) => {
+  res.json({ user: req.user });
+});
+
+router.get("/profile", requireAuth, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT CASE WHEN LEFT(Consulta, 10) = '[CHATBOT] '
+                   THEN SUBSTRING(Consulta, 11) ELSE Consulta END AS consulta,
+              Respuesta AS respuesta
+       FROM atencion_cliente
+       WHERE id = ?
+       LIMIT 100`,
+      [req.user.id_cliente]
+    );
+    res.json({ user: req.user, atenciones: rows });
+  } catch (error) {
+    console.error("No se pudo cargar el perfil del cliente:", error.message);
+    res.status(500).json({ error: "No se pudo cargar tu perfil." });
+  }
 });
 
 export default router;

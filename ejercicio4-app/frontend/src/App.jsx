@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import AdminPanel from "./components/AdminPanel";
 import Chatbot from "./components/Chatbot";
+import { API_URL } from "./config";
 import "./App.css";
 
-const paginas = ["Inicio", "Productos", "Contacto", "Administración"];
+const paginas = ["Inicio", "Productos", "Contacto", "Iniciar Sesión"];
 
 const productos = [
   { categoria: "Electrodomésticos", imagen: "frigo-nube-400.webp", marca: "Nubelia", modelo: "Frigo Nube 400", precio: 799, descuento: 15, especificaciones: ["400 L · No Frost", "Motor silencioso", "Clase energética C"] },
@@ -42,6 +43,32 @@ function App() {
   const [carrito, setCarrito] = useState({});
   const [estadoCarrito, setEstadoCarrito] = useState("carrito");
   const [referenciaPedido, setReferenciaPedido] = useState("");
+  const [authSession, setAuthSession] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
+
+  useEffect(() => {
+    const savedToken = window.sessionStorage.getItem("tonymarkt-admin-token");
+    if (!savedToken) {
+      setAuthChecking(false);
+      return;
+    }
+    fetch(`${API_URL}/auth/session`, { headers: { Authorization: `Bearer ${savedToken}` } })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "La sesión ha caducado.");
+        setAuthSession({ token: savedToken, user: data.user });
+      })
+      .catch(() => window.sessionStorage.removeItem("tonymarkt-admin-token"))
+      .finally(() => setAuthChecking(false));
+  }, []);
+
+  const cambiarSesion = useCallback((session) => {
+    if (session?.token) window.sessionStorage.setItem("tonymarkt-admin-token", session.token);
+    else window.sessionStorage.removeItem("tonymarkt-admin-token");
+    setAuthSession(session);
+  }, []);
+
+  const cerrarSesionCaducada = useCallback(() => cambiarSesion(null), [cambiarSesion]);
 
   useEffect(() => {
     const sincronizar = () => setPagina(decodeURIComponent(window.location.hash.slice(1)) || "Inicio");
@@ -49,7 +76,8 @@ function App() {
     return () => window.removeEventListener("hashchange", sincronizar);
   }, []);
 
-  const seccionValida = paginas.includes(pagina) || pagina === "Carrito" ? pagina : "Inicio";
+  const paginaActual = pagina === "Administración" ? "Iniciar Sesión" : pagina;
+  const seccionValida = paginas.includes(paginaActual) || paginaActual === "Carrito" ? paginaActual : "Inicio";
   const articulosCarrito = productos.filter((producto) => carrito[producto.modelo]);
   const cantidadCarrito = articulosCarrito.reduce((total, producto) => total + carrito[producto.modelo], 0);
   const totalCarrito = articulosCarrito.reduce((total, producto) => total + precioRebajado(producto) * carrito[producto.modelo], 0);
@@ -104,7 +132,7 @@ function App() {
         </a>
       </nav>
 
-      <main className={seccionValida === "Administración" ? "admin-page" : seccionValida === "Contacto" ? "contact-page-wrap" : seccionValida === "Productos" ? "products-page" : seccionValida === "Carrito" ? "cart-page" : "sale-home-page"}>
+      <main className={seccionValida === "Iniciar Sesión" ? "admin-page" : seccionValida === "Contacto" ? "contact-page-wrap" : seccionValida === "Productos" ? "products-page" : seccionValida === "Carrito" ? "cart-page" : "sale-home-page"}>
         {seccionValida === "Inicio" && <section className="sale-home">
           <div className="sale-hero">
             <div className="sale-hero-copy">
@@ -125,13 +153,13 @@ function App() {
             {productos.map((producto) => <TarjetaProducto key={producto.modelo} producto={producto} compacta onAdd={agregarAlCarrito} />)}
           </div>
         </section>}
-        {seccionValida === "Administración" && <>
+        {seccionValida === "Iniciar Sesión" && <>
           <div className="admin-intro">
-            <div><p className="section-kicker">ATENCIÓN AL CLIENTE · TON YMARKT</p><h2>Clientes y consultas</h2>
-              <p>Registra tus datos como cliente. La gestión de consultas y las listas requieren acceso de gerencia.</p></div>
+            <div><p className="section-kicker">ÁREA DE CLIENTES · TON YMARKT</p><h2>{authSession ? authSession.user.Rol === "Administrador" ? "Administración" : "Mi perfil" : "Iniciar sesión"}</h2>
+              <p>{authSession ? `Has iniciado sesión como ${authSession.user.Rol}.` : "Accede a tu perfil de cliente o a las herramientas de administración."}</p></div>
             <span className="admin-badge"><span/> SISTEMA ACTIVO</span>
           </div>
-          <AdminPanel />
+          <AdminPanel session={authSession} checking={authChecking} onAuthChange={cambiarSesion} />
         </>}
         {seccionValida === "Productos" && <section className="products-content">
           <div className="products-heading">
@@ -150,7 +178,7 @@ function App() {
             <a className="checkout-primary" href="#Inicio">Volver a la tienda</a>
           </div> : <>
             <div className="cart-heading"><div><p className="section-kicker">TONYMARKT · TU COMPRA</p><h2>{estadoCarrito === "checkout" ? "Tramitar pedido" : "Tu carrito"}</h2></div>
-              {estadoCarrito === "checkout" ? <button className="checkout-back" type="button" onClick={() => setEstadoCarrito("carrito")}>← Volver al carrito</button> : <a href="#Productos">Seguir comprando <span>→</span></a>}
+              {estadoCarrito === "checkout" ? <button className="checkout-back" type="button" onClick={() => setEstadoCarrito("carrito")}>← Volver al carrito</button> : <a className="cart-continue-button" href="#Productos"><span aria-hidden="true">←</span> Seguir comprando</a>}
             </div>
             {estadoCarrito === "checkout" ? <div className="checkout-layout">
               <form className="checkout-form" onSubmit={confirmarPedido} autoComplete="off">
@@ -172,7 +200,7 @@ function App() {
                 <div className="summary-total"><span>Total (precios rebajados)</span><strong>{formatoPrecio.format(totalCarrito)}</strong></div>
                 <p>Esta demostración no realiza pagos ni envía pedidos reales.</p>
               </aside>
-            </div> : articulosCarrito.length === 0 ? <div className="cart-empty"><span aria-hidden="true">🛒</span><h3>Tu carrito está esperando</h3><p>Añade algún producto y aquí aparecerá tu resumen.</p><a className="checkout-primary" href="#Productos">Explorar productos</a></div> : <div className="cart-layout">
+            </div> : articulosCarrito.length === 0 ? <div className="cart-empty"><span className="cart-empty-icon" aria-hidden="true">🛒</span><p className="section-kicker">TU PRÓXIMA COMPRA EMPIEZA AQUÍ</p><h3>Tu carrito está esperando</h3><p>Añade algún producto y aquí aparecerá tu resumen.</p><a className="cart-primary-button" href="#Productos">Explorar productos <span aria-hidden="true">→</span></a></div> : <div className="cart-layout">
               <div className="cart-items">{articulosCarrito.map((producto) => <article className="cart-item" key={producto.modelo}>
                 <img src={`/images/productos/${producto.imagen}`} alt={`${producto.marca} ${producto.modelo}`} /><div className="cart-item-info"><p>{producto.categoria} · -{producto.descuento}%</p><h3>{producto.marca} {producto.modelo}</h3><strong>{formatoPrecio.format(precioRebajado(producto))}</strong></div>
                 <div className="quantity-control" aria-label={`Cantidad de ${producto.modelo}`}><button type="button" onClick={() => cambiarCantidad(producto.modelo, -1)} aria-label="Restar una unidad">−</button><span>{carrito[producto.modelo]}</span><button type="button" onClick={() => cambiarCantidad(producto.modelo, 1)} aria-label="Añadir una unidad">+</button></div>
@@ -207,8 +235,32 @@ function App() {
         </section>}
       </main>
 
+      <section className="store-benefits" aria-label="Información de TonyMarkt">
+        <div className="benefits-top">
+          <div className="benefit-item"><span className="benefit-icon" aria-hidden="true">✦</span><span>Atención cercana</span></div>
+          <div className="benefit-item"><span className="benefit-icon" aria-hidden="true">⌕</span><span>Asesoramiento técnico</span></div>
+          <div className="benefit-item"><span className="benefit-icon" aria-hidden="true">⌂</span><span>Hogar y tecnología</span></div>
+          <div className="benefit-item"><span className="benefit-icon" aria-hidden="true">☏</span><span>Estamos aquí para ayudarte</span></div>
+        </div>
+        <div className="benefits-bottom">
+          <a className="benefits-brand" href="#Inicio" aria-label="TonyMarkt, volver al inicio"><span>TM</span><strong>TONYMARKT</strong></a>
+          <div className="benefits-categories" aria-label="Secciones de la tienda">
+            <a href="#Productos">ELECTROHOGAR</a>
+            <a href="#Productos">MÓVILES</a>
+            <a href="#Productos">INFORMÁTICA</a>
+            <a href="#Contacto">ATENCIÓN AL CLIENTE</a>
+          </div>
+          <button className="benefits-chat-link" type="button" onClick={() => window.dispatchEvent(new Event("open-support-chat"))}>¿Necesitas ayuda? <span>↗</span></button>
+        </div>
+      </section>
+
       <footer className="site-footer"><span>TONYMARKT <span className="footer-dot">●</span> Tecnología con sentido del humor</span><span>© 2026 · Todos los caprichos reservados</span></footer>
-      <Chatbot />
+      <Chatbot
+        authenticatedUser={authSession?.user}
+        authToken={authSession?.token}
+        authChecking={authChecking}
+        onSessionExpired={cerrarSesionCaducada}
+      />
     </div>
   );
 }

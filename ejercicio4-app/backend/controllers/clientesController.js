@@ -3,7 +3,7 @@ import pool from "../db.js";
 export const getClientes = async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT id_cliente, nombre, apellido, email, telefono
+      SELECT id_cliente, nombre, apellido, email, telefono, Rol
       FROM clientes ORDER BY id_cliente
     `);
     res.json(rows);
@@ -16,7 +16,7 @@ export const getClientes = async (req, res) => {
 export const getClienteById = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id_cliente, nombre, apellido, email, telefono
+      `SELECT id_cliente, nombre, apellido, email, telefono, Rol
        FROM clientes WHERE id_cliente = ?`,
       [req.params.id]
     );
@@ -31,16 +31,19 @@ export const getClienteById = async (req, res) => {
 export const createCliente = async (req, res) => {
   try {
     const { nombre, apellido, email, telefono } = req.body;
-    if (!nombre || !apellido) {
-      return res.status(400).json({ error: "Nombre y apellido son obligatorios" });
+    if (typeof nombre !== "string" || !nombre.trim() ||
+        typeof apellido !== "string" || !apellido.trim() ||
+        typeof telefono !== "string" || !telefono.trim() ||
+        (email != null && typeof email !== "string")) {
+      return res.status(400).json({ error: "Nombre, apellido y teléfono son obligatorios" });
     }
     const [result] = await pool.query(
       `INSERT INTO clientes (nombre, apellido, email, telefono)
        VALUES (?, ?, ?, ?)`,
-      [nombre, apellido, email || null, telefono || null]
+      [nombre.trim(), apellido.trim(), email?.trim() || null, telefono.trim()]
     );
     const [rows] = await pool.query(
-      `SELECT id_cliente, nombre, apellido, email, telefono
+      `SELECT id_cliente, nombre, apellido, email, telefono, Rol
        FROM clientes WHERE id_cliente = ?`,
       [result.insertId]
     );
@@ -61,7 +64,7 @@ export const updateCliente = async (req, res) => {
     );
     if (!result.affectedRows) return res.status(404).json({ error: "Cliente no encontrado" });
     const [rows] = await pool.query(
-      `SELECT id_cliente, nombre, apellido, email, telefono
+      `SELECT id_cliente, nombre, apellido, email, telefono, Rol
        FROM clientes WHERE id_cliente=?`,
       [req.params.id]
     );

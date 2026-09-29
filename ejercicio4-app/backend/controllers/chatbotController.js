@@ -167,12 +167,15 @@ export const responderChatbot = async (req, res) => {
   }
 
   try {
-    const customerName = typeof req.body?.customerName === "string"
-      ? req.body.customerName.trim().replace(/\s+/g, " ")
-      : "";
+    const sessionUser = req.user || null;
+    const customerName = sessionUser
+      ? `${sessionUser.nombre} ${sessionUser.apellido}`
+      : typeof req.body?.customerName === "string"
+        ? req.body.customerName.trim().replace(/\s+/g, " ")
+        : "";
     const registrationConfirmed = req.body?.registrationConfirmed === true;
 
-    if (!customerName) {
+    if (!sessionUser && !customerName) {
       return res.json({
         needsName: true,
         reply: "Para dirigirme a ti por tu nombre y apellido, ¿cómo te llamas?"
@@ -181,33 +184,42 @@ export const responderChatbot = async (req, res) => {
 
     // Se busca el nombre completo incluso si viene dentro de una frase hablada,
     // y se ignoran mayúsculas, signos y diferencias de acentos.
-    const [registeredClients] = await pool.query(`
-      SELECT id_cliente, nombre, apellido
-      FROM clientes
-    `);
-    const matchingClients = registeredClients.filter((registeredClient) =>
-      laFraseIncluyeNombre(customerName, `${registeredClient.nombre} ${registeredClient.apellido}`)
-    );
+    let cliente;
+    if (sessionUser) {
+      // La identidad procede del token firmado y se valida de nuevo contra la BD.
+      cliente = {
+        id_cliente: sessionUser.id_cliente,
+        nombre: sessionUser.nombre,
+        apellido: sessionUser.apellido
+      };
+    } else {
+      const [registeredClients] = await pool.query(`
+        SELECT id_cliente, nombre, apellido
+        FROM clientes
+      `);
+      const matchingClients = registeredClients.filter((registeredClient) =>
+        laFraseIncluyeNombre(customerName, `${registeredClient.nombre} ${registeredClient.apellido}`)
+      );
 
-    if (matchingClients.length === 0) {
-      return res.json({
-        needsName: true,
-        registered: false,
-        reply: registrationConfirmed
-          ? `Gracias por confirmarlo. He vuelto a buscar a ${customerName}, pero todavía no aparece en la lista de clientes. Comprueba que completaste el registro con ese nombre y apellido y vuelve a confirmármelo cuando esté hecho.`
-          : `No he podido localizar a ${customerName} en la lista de clientes. Si todavía no estás registrado, por favor regístrate en la página y vuelve al chat con el nombre tal como aparece en tu registro.`
-      });
+      if (matchingClients.length === 0) {
+        return res.json({
+          needsName: true,
+          registered: false,
+          reply: registrationConfirmed
+            ? `Gracias por confirmarlo. He vuelto a buscar a ${customerName}, pero todavía no aparece en la lista de clientes. Comprueba que completaste el registro con ese nombre y apellido y vuelve a confirmármelo cuando esté hecho.`
+            : `No he podido localizar a ${customerName} en la lista de clientes. Si todavía no estás registrado, por favor regístrate en la página y vuelve al chat con el nombre tal como aparece en tu registro.`
+        });
+      }
+
+      if (matchingClients.length > 1) {
+        return res.json({
+          needsSupport: true,
+          registered: false,
+          reply: "Hay varios clientes con ese nombre y apellido. Para no asociar tu consulta a otra persona, contacta con atención al cliente para que te ayuden a identificar tu ficha."
+        });
+      }
+      cliente = matchingClients[0];
     }
-
-    if (matchingClients.length > 1) {
-      return res.json({
-        needsSupport: true,
-        registered: false,
-        reply: "Hay varios clientes con ese nombre y apellido. Para no asociar tu consulta a otra persona, contacta con atención al cliente para que te ayuden a identificar tu ficha."
-      });
-    }
-
-    const cliente = matchingClients[0];
     const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
 
     // La marca distingue estos registros sin añadir columnas ni tablas a Aiven.
@@ -232,7 +244,7 @@ export const responderChatbot = async (req, res) => {
       ));
     // Si el cliente dijo su nombre junto con una consulta, Gemini recibe el texto
     // original completo del usuario, sin reformular la transcripción.
-    if (contieneConsultaAdemasDelNombre(customerName, nombreCompleto)) {
+    if (!sessionUser && contieneConsultaAdemasDelNombre(customerName, nombreCompleto)) {
       conversation.push({ role: "user", content: quitarSaludoInicial(customerName) });
     }
     const pregunta = conversation.filter((message) => message.role === "user").at(-1)?.content?.trim();
