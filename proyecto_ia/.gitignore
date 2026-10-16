@@ -1,3 +1,4 @@
+my_secrets.py
 # Entornos
 .venv/
 venv/
@@ -28,4 +29,3 @@ data/raw/*
 Thumbs.db
 .vscode/
 .idea/
-
