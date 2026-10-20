@@ -1,0 +1,6 @@
+# Dependencias instaladas localmente
+/backend/node_modules/
+/frontend/node_modules/
+
+# Credenciales privadas de Cloudflare
+/backend/.env
