@@ -6,14 +6,15 @@ Este proyecto está dividido en dos partes. **Frontend** es la página que ves e
 
 Instala Node.js (versión 18 o superior). Para generar imágenes también necesitas una cuenta de Cloudflare y configurar sus credenciales como se explica abajo. Después, abre dos terminales en la carpeta de este proyecto.
 
-## Preparar Cloudflare (una vez)
+## Preparar DeepL y Cloudflare (una vez)
 
-1. En el panel de Cloudflare, abre **Workers AI** y crea un token para usar la API REST. El token necesita permisos de Workers AI para tu cuenta.
-2. Copia también el **Account ID** que aparece en esa página.
-3. Entra en la carpeta `backend` y crea un archivo llamado `.env` copiando el contenido de `.env.example`.
-4. Abre `backend/.env` y sustituye los dos valores de ejemplo por tu Account ID y tu token.
+1. Crea una cuenta de desarrollador de DeepL y solicita una clave del plan **DeepL API Free**. DeepL indica que el alta no requiere tarjeta de crédito y que el plan incluye hasta 500.000 caracteres al mes.
+2. En el panel de Cloudflare, abre **Workers AI** y crea un token para usar la API REST. El token necesita permisos de Workers AI para tu cuenta.
+3. Copia también el **Account ID** de Cloudflare que aparece en esa página.
+4. Entra en la carpeta `backend` y crea un archivo llamado `.env` copiando el contenido de `.env.example`.
+5. Abre `backend/.env` y sustituye los valores de ejemplo por la clave de DeepL, el Account ID y el token de Cloudflare.
 
-El archivo `.env` guarda datos privados y no se debe compartir. El token se utiliza solo en el backend, nunca en React. Cloudflare Workers AI puede requerir activar el servicio en tu cuenta.
+El archivo `.env` guarda datos privados y no se debe compartir. La clave de DeepL y el token de Cloudflare se utilizan solo en el backend, nunca en React. Cloudflare Workers AI puede requerir activar el servicio en tu cuenta.
 
 ### 1. Arrancar el backend
 
@@ -37,7 +38,7 @@ npm install
 npm start
 ```
 
-Se abrirá la página en `http://localhost:3000`. Escribe una descripción y pulsa **Generar imagen**. Mantén abiertas dos terminales: una ejecuta el backend en `http://localhost:4000` y otra el frontend en `http://localhost:3000`. Para dictar, pulsa **Dictar**. Cuando el navegador reconozca la frase, la generación comienza automáticamente. El backend envía el texto original, sin traducir ni modificar, a `FLUX.2 dev` con CFG (guidance) en 8. El dictado usa el reconocimiento del navegador y requiere uno compatible (por ejemplo, Chrome o Edge) y permiso para el micrófono.
+Se abrirá la página en `http://localhost:3000`. Escribe una descripción y pulsa **Generar imagen**. Mantén abiertas dos terminales: una ejecuta el backend en `http://localhost:4000` y otra el frontend en `http://localhost:3000`. Para dictar, pulsa **Dictar**. Cuando el navegador reconozca la frase, el backend la envía a DeepL API Free para traducirla al inglés y pasa esa traducción a `FLUX.2 dev` con CFG (guidance) en 8. DeepL detecta automáticamente el idioma de origen. El dictado usa el reconocimiento del navegador y requiere uno compatible (por ejemplo, Chrome o Edge) y permiso para el micrófono.
 
 ## ¿Dónde escribo cada cosa?
 
@@ -50,13 +51,13 @@ proyecto-react-ia/
 │   ├── src/index.js          Arranca React
 │   └── package.json          Dependencias y comandos del frontend
 ├── backend/                  El servidor Node.js
-│   ├── server.js             Envía el prompt original a FLUX.2 dev
+│   ├── server.js             Traduce con DeepL y envía el prompt a FLUX.2 dev
 │   ├── .env.example          Plantilla para tus credenciales de Cloudflare
 │   └── package.json          Dependencias y comandos del backend
 └── README.md                 Esta guía
 ```
 
-Cuando quieras cambiar el texto o el aspecto de la página, empieza por `frontend/src/App.js` y `frontend/src/App.css`. La comunicación con Cloudflare está en `backend/server.js`. Las credenciales se configuran en `backend/.env`.
+Cuando quieras cambiar el texto o el aspecto de la página, empieza por `frontend/src/App.js` y `frontend/src/App.css`. La traducción de DeepL y la comunicación con Cloudflare están en `backend/server.js`. Las credenciales se configuran en `backend/.env`.
 
 ## Conceptos básicos
 

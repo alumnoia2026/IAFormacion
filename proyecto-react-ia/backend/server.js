@@ -9,6 +9,26 @@ const PORT = process.env.PORT || 4000;
 const MODEL = '@cf/black-forest-labs/flux-2-dev';
 const GUIDANCE = 8;
 
+async function traducirPromptConDeepL(prompt, apiKey) {
+  const response = await fetch('https://api-free.deepl.com/v2/translate', {
+    method: 'POST',
+    headers: {
+      Authorization: `DeepL-Auth-Key ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ text: [prompt], target_lang: 'EN' })
+  });
+  const data = await response.json();
+  const translated = data.translations?.[0]?.text?.trim();
+  if (!response.ok || !translated) {
+    console.error('DeepL API error:', data.message || response.status);
+    throw new Error(data.message
+      ? `DeepL: ${data.message}`
+      : 'DeepL no pudo traducir el prompt. Revisa que la clave sea de DeepL API Free.');
+  }
+  return translated;
+}
+
 app.use(cors({ origin: 'http://localhost:3000' }));
 app.use(express.json({ limit: '10kb' }));
 
@@ -19,16 +39,17 @@ app.post('/api/generar-imagen', async (req, res) => {
   if (!prompt) return res.status(400).json({ error: 'Escribe una descripción para la imagen.' });
   if (prompt.length > 2048) return res.status(400).json({ error: 'La descripción no puede superar los 2048 caracteres.' });
 
-  const { CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN } = process.env;
-  if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
-    return res.status(503).json({ error: 'Falta configurar Cloudflare. Sigue los pasos del README.' });
+  const { CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, DEEPL_API_KEY } = process.env;
+  if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN || !DEEPL_API_KEY) {
+    return res.status(503).json({ error: 'Falta configurar la clave de DeepL API o las credenciales de Cloudflare. Sigue los pasos del README.' });
   }
 
   try {
-    console.info('Enviando prompt original a FLUX.2 dev.');
+    const promptEnIngles = await traducirPromptConDeepL(prompt, DEEPL_API_KEY);
+    console.info('Prompt traducido con DeepL; enviándolo a FLUX.2 dev.');
     // Este modelo requiere multipart/form-data, aunque solo enviemos texto.
     const formData = new FormData();
-    formData.append('prompt', prompt);
+    formData.append('prompt', promptEnIngles);
     formData.append('guidance', String(GUIDANCE));
 
     const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${MODEL}`, {
